@@ -1,7 +1,7 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
-// Configuration Firebase
+// Configuration Firebase récupérée depuis votre console
 const firebaseConfig = {
   apiKey: "AIzaSyDB86DeluK8VpCCqqCX2zXUJZTZomEml8k",
   authDomain: "app-killer-game.firebaseapp.com",
@@ -12,8 +12,8 @@ const firebaseConfig = {
   appId: "1:1011226719118:web:689e692ff387915fa76adf"
 };
 
-// Initialiser Firebase
-const app = initializeApp(firebaseConfig);
+// Initialisation de Firebase (avec vérification pour éviter les doubles initialisations)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// IMPORTANT : On utilise "export const db" pour que le reste du jeu fonctionne
+// On utilise "db" car c'est ce nom que le reste du code (index.tsx, etc.) utilise
 export const db = getDatabase(app);
