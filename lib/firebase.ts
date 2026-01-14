@@ -13,8 +13,7 @@ const firebaseConfig = {
 };
 
 // Initialisation de Firebase
-// On vérifie si l'app est déjà initialisée pour éviter les erreurs au rechargement
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// IMPORTANT : Le nom doit être "db" pour correspondre au reste du code du jeu
-export const db = getDatabase(app);
+// Export de la database
+export const database = getDatabase(app);
