@@ -49,6 +49,20 @@ export default function Home() {
     }
   }, [missions.length, myRole]);
 
+  useEffect(() => {
+    // Réinitialiser l'attente quand il n'y a plus de confirmation en attente pour ce joueur
+    if (myRole === 'player' && currentPlayer && waitingForValidation) {
+      const myPendingConfirmation = pendingConfirmations.find(
+        c => c.hunterId === currentPlayer.id
+      );
+      
+      // Si plus de confirmation en attente, réinitialiser
+      if (!myPendingConfirmation) {
+        setWaitingForValidation(false);
+      }
+    }
+  }, [pendingConfirmations, myRole, currentPlayer, waitingForValidation]);
+
   const loadLocalData = () => {
     const savedRole = localStorage.getItem('my-role');
     const savedCode = localStorage.getItem('game-code');
