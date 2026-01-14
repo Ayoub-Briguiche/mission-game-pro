@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { database } from '../lib/firebase';
 import { ref, onValue, set, update, remove } from 'firebase/database';
 import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut, Home } from 'lucide-react';
+import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut } from 'lucide-react';
 
 export default function Home() {
   const [gameState, setGameState] = useState('setup');
