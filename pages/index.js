@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { database } from '../lib/firebase';
 import { ref, onValue, set, update, remove } from 'firebase/database';
 import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut, Home } from 'lucide-react';
 
 export default function Home() {
   const [gameState, setGameState] = useState('setup');
@@ -93,8 +93,6 @@ export default function Home() {
 
   const joinGame = async (code, name, photoUrl) => {
     try {
-      const gameRef = ref(database, `games/${code}`);
-      
       const newPlayer = {
         id: Date.now().toString(),
         name,
@@ -117,6 +115,13 @@ export default function Home() {
       listenToGame(code);
     } catch (e) {
       alert('Erreur : ' + e.message);
+    }
+  };
+
+  const leaveGame = () => {
+    if (confirm('Voulez-vous vraiment quitter cette partie ?')) {
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -175,7 +180,6 @@ export default function Home() {
     if (!confirmation) return;
 
     if (approved) {
-      // Mettre à jour les points
       const hunter = players.find(p => p.id === confirmation.hunterId);
       const target = players.find(p => p.id === confirmation.targetId);
       
@@ -193,7 +197,6 @@ export default function Home() {
         });
       }
 
-      // Nouvelle mission
       const availableTargets = players.filter(p => 
         p.id !== confirmation.hunterId && p.id !== confirmation.targetId
       );
@@ -212,12 +215,11 @@ export default function Home() {
       }
     }
 
-    // Supprimer la confirmation
     await remove(ref(database, `games/${gameCode}/confirmations/${confirmationId}`));
   };
 
   const resetGame = async () => {
-    if (!confirm('Réinitialiser la partie ?')) return;
+    if (!confirm('Réinitialiser la partie ? Tous les joueurs seront déconnectés.')) return;
     
     if (gameCode) {
       await remove(ref(database, `games/${gameCode}`));
@@ -229,10 +231,13 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-16 h-16 text-white animate-spin mx-auto mb-4" />
-          <div className="text-white text-2xl">Chargement...</div>
+          <div className="relative">
+            <RefreshCw className="w-20 h-20 text-white animate-spin mx-auto mb-6" />
+            <div className="absolute inset-0 w-20 h-20 bg-white/20 rounded-full blur-xl mx-auto animate-pulse"></div>
+          </div>
+          <div className="text-white text-3xl font-bold animate-pulse">Chargement...</div>
         </div>
       </div>
     );
@@ -254,22 +259,37 @@ export default function Home() {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-        <div className="max-w-lg mx-auto pt-8">
-          <div className="bg-white rounded-3xl shadow-2xl p-8">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        </div>
+
+        <div className="max-w-lg mx-auto pt-8 relative z-10">
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+            {/* Logo et titre */}
             <div className="text-center mb-8">
-              <div className="text-6xl mb-4">🎯</div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">Mission Game</h1>
-              <p className="text-gray-600 text-lg">Piégez vos collègues avec des missions !</p>
+              <div className="inline-block p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+                <Target className="w-16 h-16 text-white" />
+              </div>
+              <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                Mission Game
+              </h1>
+              <p className="text-gray-600 text-lg font-medium">Piégez vos collègues avec style !</p>
             </div>
 
             <div className="space-y-6">
+              {/* Bouton créer partie */}
               <button
                 onClick={createGame}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-5 rounded-2xl font-bold text-xl hover:from-purple-700 hover:to-pink-700 transition shadow-lg flex items-center justify-center gap-3"
+                className="group w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-5 rounded-2xl font-bold text-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
               >
-                <Play className="w-6 h-6" />
-                Créer une partie (Organisateur)
+                <div className="p-2 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform">
+                  <Play className="w-6 h-6" />
+                </div>
+                Créer une partie
               </button>
 
               <div className="relative">
@@ -277,19 +297,23 @@ export default function Home() {
                   <div className="w-full border-t-2 border-gray-300"></div>
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="px-4 py-1 bg-white text-gray-500 font-semibold">OU</span>
+                  <span className="px-4 py-1 bg-white text-gray-500 font-bold text-sm rounded-full">OU</span>
                 </div>
               </div>
 
-              <div className="bg-blue-50 rounded-2xl p-6 space-y-4">
-                <h3 className="font-bold text-blue-900 text-center text-xl">Rejoindre une partie</h3>
+              {/* Section rejoindre */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 space-y-4 border-2 border-blue-200">
+                <h3 className="font-bold text-indigo-900 text-center text-xl flex items-center justify-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Rejoindre une partie
+                </h3>
                 
                 <input
                   type="text"
                   placeholder="CODE (ex: ABC123)"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-4 border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-600 text-center text-2xl font-mono font-bold"
+                  className="w-full px-4 py-4 border-3 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-center text-2xl font-mono font-bold bg-white transition-all"
                   maxLength={6}
                 />
                 
@@ -298,32 +322,46 @@ export default function Home() {
                   placeholder="Votre nom"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-600"
+                  className="w-full px-4 py-4 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 bg-white transition-all"
                 />
 
-                <div className="border-2 border-dashed border-blue-300 rounded-xl p-4 text-center bg-white">
+                <div className="border-3 border-dashed border-indigo-300 rounded-xl p-6 text-center bg-white hover:bg-indigo-50 transition-colors">
                   {photo ? (
-                    <img src={photo} alt="Photo" className="w-32 h-32 rounded-full mx-auto object-cover border-4 border-blue-300" />
+                    <div className="relative inline-block">
+                      <img src={photo} alt="Photo" className="w-32 h-32 rounded-full mx-auto object-cover border-4 border-indigo-300 shadow-lg" />
+                      <div className="absolute -bottom-2 -right-2 p-2 bg-green-500 rounded-full border-4 border-white">
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
                   ) : (
                     <div className="py-4">
-                      <Camera className="w-16 h-16 text-blue-400 mx-auto mb-2" />
-                      <p className="text-blue-700 font-semibold">Photo requise</p>
+                      <div className="inline-block p-4 bg-indigo-100 rounded-full mb-3">
+                        <Camera className="w-12 h-12 text-indigo-600" />
+                      </div>
+                      <p className="text-indigo-700 font-bold">Photo obligatoire</p>
                     </div>
                   )}
                   <input type="file" accept="image/*" capture="user" onChange={handlePhotoUpload} className="hidden" id="photo" />
-                  <label htmlFor="photo" className="mt-3 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-blue-700 font-bold">
-                    {photo ? '✓ Changer' : '📷 Prendre une photo'}
+                  <label htmlFor="photo" className="mt-4 inline-block bg-indigo-600 text-white px-8 py-3 rounded-xl cursor-pointer hover:bg-indigo-700 font-bold transition-all hover:scale-105 shadow-md">
+                    {photo ? '✓ Changer la photo' : '📷 Prendre une photo'}
                   </label>
                 </div>
 
                 <button
                   onClick={() => code && name && photo && joinGame(code, name, photo)}
                   disabled={!code || !name || !photo}
-                  className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:bg-gray-300"
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
                 >
                   ✅ Rejoindre la partie !
                 </button>
               </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 text-center">
+              <p className="text-xs text-gray-500">
+                🔒 Sécurisé • ⚡ Temps réel • 🎯 100% Gratuit
+              </p>
             </div>
           </div>
         </div>
@@ -338,22 +376,28 @@ export default function Home() {
     const gameUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
     return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Scannez pour rejoindre !</h2>
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full transform animate-scaleIn">
+          <div className="text-center mb-6">
+            <div className="inline-block p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mb-4">
+              <QrCode className="w-12 h-12 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Scannez pour rejoindre !</h2>
+            <p className="text-gray-600">Partagez ce QR code avec vos collègues</p>
+          </div>
           
-          <div className="bg-white p-6 rounded-2xl border-4 border-purple-600 mb-6">
+          <div className="bg-white p-6 rounded-2xl border-4 border-indigo-600 mb-6 shadow-lg">
             <QRCodeSVG value={gameUrl} size={256} className="mx-auto" level="H" />
           </div>
 
           <div className="text-center mb-6">
-            <p className="text-gray-600 mb-2">Ou entrez le code :</p>
-            <p className="text-5xl font-bold font-mono text-purple-600 bg-purple-100 py-4 rounded-xl">{gameCode}</p>
+            <p className="text-gray-600 mb-2 font-semibold">Ou entrez le code :</p>
+            <p className="text-5xl font-black font-mono text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text py-4">{gameCode}</p>
           </div>
 
           <button
             onClick={() => setShowQRCode(false)}
-            className="w-full bg-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-purple-700 transition"
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
           >
             Fermer
           </button>
@@ -365,131 +409,128 @@ export default function Home() {
   // DASHBOARD ADMIN
   const AdminView = () => {
     if (showLeaderboard) {
-      const sortedPlayers = [...players].sort((a, b) => b.points - a.points);
-
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 p-4">
-          <div className="max-w-4xl mx-auto pt-4">
-            <div className="bg-white rounded-2xl shadow-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-                  <Trophy className="w-10 h-10 text-yellow-500" />
-                  Classement
-                </h1>
-                <button onClick={() => setShowLeaderboard(false)} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold">
-                  Retour
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {sortedPlayers.map((player, index) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center gap-6 p-6 rounded-xl ${
-                      index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-4 border-yellow-400 scale-105' :
-                      index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-50 border-4 border-gray-400' :
-                      index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-50 border-4 border-orange-400' :
-                      'bg-gray-50 border-2 border-gray-200'
-                    }`}
-                  >
-                    <div className="text-4xl font-bold w-16 text-center">
-                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                    </div>
-                    <img src={player.photo} alt={player.name} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg" />
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-800">{player.name}</h3>
-                      <div className="flex gap-4 mt-2">
-                        <span className="bg-white px-3 py-1 rounded-full text-sm">
-                          🏆 <span className="font-bold text-purple-600">{player.points}</span> pts
-                        </span>
-                        <span className="bg-white px-3 py-1 rounded-full text-sm">
-                          ✅ <span className="font-bold text-green-600">{player.successful}</span>
-                        </span>
-                        <span className="bg-white px-3 py-1 rounded-full text-sm">
-                          ❌ <span className="font-bold text-red-600">{player.trapped}</span>
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-5xl font-bold text-purple-600">{player.points}</div>
-                      <div className="text-sm text-gray-500">points</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
+      return <LeaderboardView />;
     }
 
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Dashboard Organisateur</h1>
-                <p className="text-gray-600 mt-2">Code: <span className="font-mono font-bold text-3xl text-purple-600 bg-purple-100 px-4 py-1 rounded-lg">{gameCode}</span></p>
-                <p className="text-xs text-gray-400 mt-2">⚡ Synchronisation en temps réel</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Header avec gradient */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-2xl p-8 mb-6 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <Trophy className="w-8 h-8" />
+                  </div>
+                  <h1 className="text-4xl font-black">Dashboard Organisateur</h1>
+                </div>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
+                    <p className="text-sm opacity-90 mb-1">Code de la partie</p>
+                    <p className="font-mono font-black text-4xl tracking-wider">{gameCode}</p>
+                  </div>
+                  <div className="text-sm opacity-75 flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Synchronisation en temps réel
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowQRCode(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 flex items-center gap-2">
+              <div className="flex gap-3 flex-wrap justify-end">
+                <button onClick={() => setShowQRCode(true)} className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 shadow-lg">
                   <QrCode className="w-5 h-5" />
                   QR Code
                 </button>
-                <button onClick={() => setShowLeaderboard(true)} className="bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-yellow-600 flex items-center gap-2">
+                <button onClick={() => setShowLeaderboard(true)} className="bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-yellow-600 transition flex items-center gap-2 shadow-lg">
                   <Trophy className="w-5 h-5" />
                   Scores
                 </button>
                 {gameState === 'lobby' && players.length >= 3 && (
-                  <button onClick={startGame} className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 animate-pulse flex items-center gap-2">
+                  <button onClick={startGame} className="bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 animate-pulse flex items-center gap-2 shadow-lg">
                     <Play className="w-5 h-5" />
                     Démarrer
                   </button>
                 )}
-                <button onClick={resetGame} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700">Reset</button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-purple-50 p-4 rounded-xl">
-                <Users className="w-8 h-8 text-purple-600 mb-2" />
-                <p className="text-2xl font-bold">{players.length}</p>
-                <p className="text-gray-600">Joueurs</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-xl">
-                <CheckCircle className="w-8 h-8 text-green-600 mb-2" />
-                <p className="text-2xl font-bold">{missions.filter(m => m.validated).length}</p>
-                <p className="text-gray-600">Validées</p>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-xl">
-                <Target className="w-8 h-8 text-orange-600 mb-2" />
-                <p className="text-2xl font-bold">{pendingConfirmations.length}</p>
-                <p className="text-gray-600">En attente</p>
+                <button onClick={leaveGame} className="bg-white/20 text-white px-6 py-3 rounded-xl font-bold hover:bg-white/30 transition flex items-center gap-2">
+                  <LogOut className="w-5 h-5" />
+                  Quitter
+                </button>
+                <button onClick={resetGame} className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition shadow-lg">
+                  Reset
+                </button>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4">Joueurs inscrits</h2>
+          {/* Stats avec animations */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-indigo-100 rounded-xl">
+                  <Users className="w-8 h-8 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-4xl font-black text-gray-800">{players.length}</p>
+                  <p className="text-gray-600 font-semibold">Joueurs inscrits</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-green-100 rounded-xl">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-4xl font-black text-gray-800">{missions.filter(m => m.validated).length}</p>
+                  <p className="text-gray-600 font-semibold">Missions validées</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-orange-100 rounded-xl">
+                  <Target className="w-8 h-8 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-4xl font-black text-gray-800">{pendingConfirmations.length}</p>
+                  <p className="text-gray-600 font-semibold">En attente</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Liste des joueurs */}
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <Users className="w-7 h-7 text-indigo-600" />
+              Joueurs inscrits ({players.length})
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map(player => (
-                <div key={player.id} className="border-2 border-gray-200 rounded-xl p-4 flex items-center gap-4 hover:border-purple-400 transition">
-                  <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover" />
+                <div key={player.id} className="group border-2 border-gray-200 rounded-2xl p-4 flex items-center gap-4 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50">
+                  <div className="relative">
+                    <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-4 ring-gray-200 group-hover:ring-indigo-400 transition-all" />
+                    <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
+                  </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-800">{player.name}</h3>
-                    <p className="text-sm text-gray-600">{player.points} pts</p>
-                    <p className="text-xs text-gray-500">✅ {player.successful} | ❌ {player.trapped}</p>
+                    <h3 className="font-bold text-gray-800 text-lg">{player.name}</h3>
+                    <p className="text-indigo-600 font-semibold">🏆 {player.points} pts</p>
+                    <p className="text-xs text-gray-500">✅ {player.successful} • ❌ {player.trapped}</p>
                   </div>
                 </div>
               ))}
             </div>
             {players.length === 0 && (
-              <p className="text-center text-gray-500 py-8">En attente des joueurs... Partagez le QR code !</p>
+              <div className="text-center py-16 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl">
+                <Users className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-xl font-semibold">En attente des joueurs...</p>
+                <p className="text-gray-400 mt-2">Partagez le QR code pour commencer !</p>
+              </div>
             )}
             {players.length > 0 && players.length < 3 && (
-              <p className="text-center text-blue-600 mt-4 font-semibold">Encore {3 - players.length} joueur(s) minimum</p>
+              <div className="text-center mt-6 p-6 bg-blue-50 border-2 border-blue-300 rounded-2xl">
+                <p className="text-blue-800 font-bold text-xl">⏳ Encore {3 - players.length} joueur(s) minimum</p>
+              </div>
             )}
           </div>
         </div>
@@ -500,62 +541,7 @@ export default function Home() {
   // VUE JOUEUR
   const PlayerView = () => {
     if (showLeaderboard) {
-      const sortedPlayers = [...players].sort((a, b) => b.points - a.points);
-
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-orange-500 p-4">
-          <div className="max-w-4xl mx-auto pt-4">
-            <div className="bg-white rounded-2xl shadow-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-                  <Trophy className="w-10 h-10 text-yellow-500" />
-                  Classement
-                </h1>
-                <button onClick={() => setShowLeaderboard(false)} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-bold">
-                  Retour
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {sortedPlayers.map((player, index) => (
-                  <div
-                    key={player.id}
-                    className={`flex items-center gap-6 p-6 rounded-xl ${
-                      index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-4 border-yellow-400 scale-105' :
-                      index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-50 border-4 border-gray-400' :
-                      index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-50 border-4 border-orange-400' :
-                      'bg-gray-50 border-2 border-gray-200'
-                    }`}
-                  >
-                    <div className="text-4xl font-bold w-16 text-center">
-                      {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                    </div>
-                    <img src={player.photo} alt={player.name} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg" />
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold text-gray-800">{player.name}</h3>
-                      <div className="flex gap-4 mt-2 flex-wrap">
-                        <span className="bg-white px-3 py-1 rounded-full text-sm">
-                          🏆 <span className="font-bold text-purple-600">{player.points}</span> pts
-                        </span>
-                        <span className="bg-white px-3 py-1 rounded-full text-sm">
-                          ✅ <span className="font-bold text-green-600">{player.successful}</span>
-                        </span>
-                        <span className="bg-white px-3 py-1 rounded-full text-sm">
-                          ❌ <span className="font-bold text-red-600">{player.trapped}</span>
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-5xl font-bold text-purple-600">{player.points}</div>
-                      <div className="text-sm text-gray-500">points</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
+      return <LeaderboardView />;
     }
 
     const myMission = missions.find(m => m.playerId === currentPlayer?.id && !m.completed);
@@ -564,55 +550,73 @@ export default function Home() {
 
     if (!player) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-8 text-center">
-            <p className="text-gray-800 mb-4">Erreur: Joueur non trouvé</p>
-            <button onClick={resetGame} className="bg-red-600 text-white px-6 py-2 rounded-lg">Réinitialiser</button>
+        <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 text-center shadow-2xl">
+            <XCircle className="w-20 h-20 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-800 text-xl font-bold mb-4">Erreur: Joueur non trouvé</p>
+            <button onClick={leaveGame} className="bg-red-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-700 transition">
+              Retour à l'accueil
+            </button>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4">
         <div className="max-w-2xl mx-auto pt-4">
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+          {/* Profil joueur */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
             <div className="flex items-center gap-4">
-              <img src={player.photo} alt={player.name} className="w-20 h-20 rounded-full object-cover border-4 border-purple-600" />
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-800">{player.name}</h2>
-                <div className="flex gap-4 text-sm text-gray-600">
-                  <span>🏆 {player.points} pts</span>
-                  <span>✅ {player.successful}</span>
-                  <span>❌ {player.trapped}</span>
+              <div className="relative">
+                <img src={player.photo} alt={player.name} className="w-24 h-24 rounded-full object-cover ring-4 ring-indigo-600 shadow-lg" />
+                <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1 rounded-full text-white font-bold text-sm">
+                  #{players.sort((a, b) => b.points - a.points).findIndex(p => p.id === player.id) + 1}
                 </div>
               </div>
-              <button onClick={() => setShowLeaderboard(true)} className="bg-purple-100 text-purple-600 px-4 py-2 rounded-lg font-semibold">
-                Scores
-              </button>
+              <div className="flex-1">
+                <h2 className="text-3xl font-black text-gray-800 mb-1">{player.name}</h2>
+                <div className="flex gap-4 text-sm">
+                  <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold">🏆 {player.points} pts</span>
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">✅ {player.successful}</span>
+                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold">❌ {player.trapped}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => setShowLeaderboard(true)} className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 rounded-xl font-semibold hover:from-yellow-500 hover:to-orange-600 transition shadow-lg">
+                  <Trophy className="w-5 h-5" />
+                </button>
+                <button onClick={leaveGame} className="bg-red-500 text-white p-3 rounded-xl font-semibold hover:bg-red-600 transition shadow-lg">
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* Mission actuelle */}
           {gameState === 'playing' && myMission && (
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
-              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                🎯 Votre mission
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
+                Votre mission
               </h3>
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200">
+              <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-3 border-indigo-300">
                 <div className="flex items-center gap-4 mb-4">
-                  <img src={myMission.targetPhoto} alt={myMission.targetName} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg" />
+                  <img src={myMission.targetPhoto} alt={myMission.targetName} className="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-xl" />
                   <div>
-                    <p className="text-sm text-gray-600">Cible:</p>
-                    <p className="text-2xl font-bold text-gray-800">{myMission.targetName}</p>
+                    <p className="text-sm text-gray-600 font-semibold mb-1">🎯 Votre cible:</p>
+                    <p className="text-3xl font-black text-gray-800">{myMission.targetName}</p>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg p-4 mb-4 shadow">
-                  <p className="text-sm text-gray-600 mb-1">Mission:</p>
-                  <p className="text-lg font-semibold text-gray-800">{myMission.mission}</p>
+                <div className="bg-white rounded-xl p-5 mb-4 shadow-lg border-2 border-indigo-200">
+                  <p className="text-sm text-gray-600 font-semibold mb-2">📝 Votre mission:</p>
+                  <p className="text-xl font-bold text-gray-800">{myMission.mission}</p>
                 </div>
                 <button
                   onClick={() => completeMission(myMission.id)}
-                  className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700"
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition shadow-lg hover:shadow-xl hover:scale-105"
                 >
                   ✅ J'ai piégé ma cible !
                 </button>
@@ -620,35 +624,42 @@ export default function Home() {
             </div>
           )}
 
+          {/* Confirmations */}
           {myConfirmations.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">⚠️ Confirmations</h3>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                ⚠️ Confirmations requises
+                <span className="bg-orange-500 text-white text-sm px-3 py-1 rounded-full">{myConfirmations.length}</span>
+              </h3>
               {myConfirmations.map(conf => {
                 const hunter = players.find(p => p.id === conf.hunterId);
                 return (
-                  <div key={conf.id} className="border-2 border-orange-400 rounded-xl p-4 bg-orange-50 mb-4 animate-pulse">
-                    <div className="flex items-center gap-3 mb-3">
-                      <img src={hunter?.photo} className="w-12 h-12 rounded-full object-cover border-2 border-orange-400" />
+                  <div key={conf.id} className="bg-gradient-to-r from-orange-50 to-red-50 border-3 border-orange-400 rounded-2xl p-5 mb-4 animate-pulse shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <img src={hunter?.photo} className="w-16 h-16 rounded-full object-cover ring-4 ring-orange-400" />
                       <div className="flex-1">
-                        <p className="font-bold">{hunter?.name}</p>
-                        <p className="text-sm text-gray-600">dit vous avoir piégé</p>
+                        <p className="text-xl font-bold text-gray-800">{hunter?.name}</p>
+                        <p className="text-gray-600 font-semibold">prétend vous avoir piégé</p>
                       </div>
                     </div>
-                    <p className="text-sm mb-4 bg-white p-3 rounded-lg border border-orange-200">{conf.mission}</p>
+                    <div className="bg-white rounded-xl p-4 mb-4 border-2 border-orange-300">
+                      <p className="text-sm text-gray-600 font-semibold mb-1">Mission:</p>
+                      <p className="text-gray-800 font-bold">{conf.mission}</p>
+                    </div>
                     <div className="flex gap-3">
                       <button
                         onClick={() => validateMission(conf.id, true)}
-                        className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 flex items-center justify-center gap-2"
+                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition flex items-center justify-center gap-2 shadow-lg"
                       >
-                        <CheckCircle className="w-5 h-5" />
-                        OUI
+                        <CheckCircle className="w-6 h-6" />
+                        OUI, c'est vrai
                       </button>
                       <button
                         onClick={() => validateMission(conf.id, false)}
-                        className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 flex items-center justify-center gap-2"
+                        className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 text-white py-4 rounded-xl font-bold hover:from-red-600 hover:to-pink-700 transition flex items-center justify-center gap-2 shadow-lg"
                       >
-                        <XCircle className="w-5 h-5" />
-                        NON
+                        <XCircle className="w-6 h-6" />
+                        NON, c'est faux
                       </button>
                     </div>
                   </div>
@@ -658,12 +669,106 @@ export default function Home() {
           )}
 
           {gameState === 'lobby' && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-              <Target className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">⏳ En attente</h3>
-              <p className="text-gray-600">L'organisateur va lancer le jeu...</p>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-12 text-center">
+              <div className="inline-block p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mb-4">
+                <Target className="w-16 h-16 text-white animate-pulse" />
+              </div>
+              <h3 className="text-3xl font-bold text-gray-800 mb-2">⏳ En attente</h3>
+              <p className="text-gray-600 text-lg">L'organisateur va lancer le jeu...</p>
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Synchronisation automatique
+              </div>
             </div>
           )}
+        </div>
+      </div>
+    );
+  };
+
+  // CLASSEMENT
+  const LeaderboardView = () => {
+    const sortedPlayers = [...players].sort((a, b) => b.points - a.points);
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-4">
+        <div className="max-w-6xl mx-auto pt-4">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl">
+                  <Trophy className="w-12 h-12 text-white" />
+                </div>
+                <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
+                  Classement
+                </h1>
+              </div>
+              <button onClick={() => setShowLeaderboard(false)} className="bg-gray-200 text-gray-700 px-8 py-3 rounded-xl font-bold hover:bg-gray-300 transition-all hover:scale-105 shadow-lg flex items-center gap-2">
+                <ArrowLeft className="w-5 h-5" />
+                Retour
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {sortedPlayers.map((player, index) => (
+                <div
+                  key={player.id}
+                  className={`flex items-center gap-6 p-6 rounded-2xl transition-all hover:scale-102 ${
+                    index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-4 border-yellow-400 scale-105 shadow-2xl' :
+                    index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-50 border-4 border-gray-400 shadow-xl' :
+                    index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-50 border-4 border-orange-400 shadow-xl' :
+                    'bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-gray-200 shadow-lg'
+                  }`}
+                >
+                  <div className={`text-6xl font-black w-20 text-center ${
+                    index === 0 ? 'animate-bounce' : ''
+                  }`}>
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                  </div>
+                  <div className="relative">
+                    <img src={player.photo} alt={player.name} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl" />
+                    {index < 3 && (
+                      <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 p-2 rounded-full">
+                        <Trophy className="w-5 h-5 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-3xl font-black text-gray-800 mb-2">{player.name}</h3>
+                    <div className="flex gap-4 flex-wrap">
+                      <span className="bg-white px-4 py-2 rounded-full text-base font-bold shadow-md">
+                        🏆 <span className="text-indigo-600">{player.points}</span> pts
+                      </span>
+                      <span className="bg-white px-4 py-2 rounded-full text-base font-bold shadow-md">
+                        ✅ <span className="text-green-600">{player.successful}</span> réussies
+                      </span>
+                      <span className="bg-white px-4 py-2 rounded-full text-base font-bold shadow-md">
+                        ❌ <span className="text-red-600">{player.trapped}</span> piégé(e)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-7xl font-black ${
+                      index === 0 ? 'text-yellow-500' :
+                      index === 1 ? 'text-gray-400' :
+                      index === 2 ? 'text-orange-500' :
+                      'text-indigo-600'
+                    }`}>
+                      {player.points}
+                    </div>
+                    <div className="text-sm text-gray-500 font-semibold">points</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {players.length === 0 && (
+              <div className="text-center py-20">
+                <Users className="w-32 h-32 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-2xl font-bold">Aucun joueur inscrit</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -672,6 +777,22 @@ export default function Home() {
   // ROUTER
   return (
     <>
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        .animate-scaleIn {
+          animation: scaleIn 0.3s ease-out;
+        }
+      `}</style>
       {showQRCode && <QRCodeModal />}
       {myRole === null && <JoinView />}
       {myRole === 'admin' && <AdminView />}
