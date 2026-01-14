@@ -16,6 +16,7 @@ export default function Home() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [missionVisible, setMissionVisible] = useState(false);
+  const [waitingForValidation, setWaitingForValidation] = useState(false);
 
   const missionTemplates = [
     "Demander à {target} de vous recommander 3 films",
@@ -42,6 +43,8 @@ export default function Home() {
       const myMission = missions.find(m => m.playerId === currentPlayer?.id && !m.completed);
       if (myMission) {
         setMissionVisible(false);
+        // Réinitialiser l'attente si nouvelle mission
+        setWaitingForValidation(false);
       }
     }
   }, [missions.length, myRole]);
@@ -269,10 +272,15 @@ export default function Home() {
       hunterId: mission.playerId,
       targetId: mission.targetId,
       mission: mission.mission,
+      targetName: mission.targetName,
       timestamp: Date.now()
     };
 
     await set(ref(database, `games/${gameCode}/confirmations/${confirmationId}`), confirmation);
+    
+    // Activer le message d'attente
+    setWaitingForValidation(true);
+    setMissionVisible(false);
   };
 
   const validateMission = async (confirmationId, approved) => {
@@ -450,11 +458,18 @@ export default function Home() {
                         <Camera className="w-12 h-12 text-indigo-600" />
                       </div>
                       <p className="text-indigo-700 font-bold">Photo obligatoire</p>
+                      <p className="text-sm text-gray-500 mt-1">Caméra ou Galerie</p>
                     </div>
                   )}
-                  <input type="file" accept="image/*" capture="user" onChange={handlePhotoUpload} className="hidden" id="photo" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handlePhotoUpload} 
+                    className="hidden" 
+                    id="photo" 
+                  />
                   <label htmlFor="photo" className="mt-4 inline-block bg-indigo-600 text-white px-8 py-3 rounded-xl cursor-pointer hover:bg-indigo-700 font-bold transition-all hover:scale-105 shadow-md">
-                    {photo ? '✓ Changer la photo' : '📷 Prendre une photo'}
+                    {photo ? '✓ Changer la photo' : '📷 Ajouter une photo'}
                   </label>
                 </div>
 
@@ -782,7 +797,27 @@ export default function Home() {
                 Votre mission
               </h3>
               
-              {!missionVisible ? (
+              {waitingForValidation ? (
+                // Message d'attente de validation
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8 border-3 border-yellow-400 text-center animate-pulse">
+                  <div className="mb-6">
+                    <div className="inline-block p-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-4">
+                      <Clock className="w-16 h-16 text-white animate-spin" style={{animationDuration: '3s'}} />
+                    </div>
+                    <h4 className="text-3xl font-black text-gray-800 mb-3">⏳ En attente de validation</h4>
+                    <p className="text-xl text-gray-700 mb-2">
+                      <span className="font-bold text-orange-600">{myMission.targetName}</span> doit confirmer que vous l'avez piégé(e)
+                    </p>
+                    <p className="text-gray-600">Patience... 😊</p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-yellow-300">
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                      Synchronisation en temps réel
+                    </div>
+                  </div>
+                </div>
+              ) : !missionVisible ? (
                 // Mission cachée - Bouton pour révéler
                 <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-12 border-3 border-indigo-300 text-center">
                   <div className="mb-6">
