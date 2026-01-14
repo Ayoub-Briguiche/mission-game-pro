@@ -15,6 +15,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [missionVisible, setMissionVisible] = useState(false);
 
   const missionTemplates = [
     "Demander à {target} de vous recommander 3 films",
@@ -34,6 +35,16 @@ export default function Home() {
   useEffect(() => {
     loadLocalData();
   }, []);
+
+  useEffect(() => {
+    // Réinitialiser la visibilité de la mission quand une nouvelle mission est assignée
+    if (myRole === 'player' && missions.length > 0) {
+      const myMission = missions.find(m => m.playerId === currentPlayer?.id && !m.completed);
+      if (myMission) {
+        setMissionVisible(false);
+      }
+    }
+  }, [missions.length, myRole]);
 
   const loadLocalData = () => {
     const savedRole = localStorage.getItem('my-role');
@@ -172,6 +183,46 @@ export default function Home() {
     }
   };
 
+  // Calculer les points bonus selon le temps (1-1000 points)
+  const calculateTimeBonus = (missionStartTime) => {
+    const timeElapsed = Date.now() - missionStartTime; // en millisecondes
+    const minutes = timeElapsed / 60000; // convertir en minutes
+    
+    // Formule: 1000 points si < 1 min, diminue progressivement
+    // 1000 points à 0 min
+    // 500 points à 5 min
+    // 100 points à 15 min
+    // 1 point à 30+ min
+    
+    if (minutes < 1) return 1000;
+    if (minutes < 2) return 900;
+    if (minutes < 3) return 800;
+    if (minutes < 5) return 600;
+    if (minutes < 10) return 300;
+    if (minutes < 15) return 150;
+    if (minutes < 20) return 75;
+    if (minutes < 30) return 25;
+    return 1; // minimum 1 point bonus
+  };
+
+  // Calculer la pénalité pour être piégé (selon le temps écoulé)
+  const calculateTrapPenalty = (missionStartTime) => {
+    const timeElapsed = Date.now() - missionStartTime;
+    const minutes = timeElapsed / 60000;
+    
+    // Plus tu te fais piéger vite, plus la pénalité est forte
+    // Piégé en < 1 min : -20 points (tu étais trop naïf)
+    // Piégé en < 5 min : -15 points
+    // Piégé en < 10 min : -10 points
+    // Piégé après 10+ min : -5 points (tu as bien résisté)
+    
+    if (minutes < 1) return 20;
+    if (minutes < 3) return 15;
+    if (minutes < 5) return 12;
+    if (minutes < 10) return 8;
+    return 5; // pénalité minimum
+  };
+
   const startGame = async () => {
     if (players.length < 3) {
       alert('❌ Minimum 3 joueurs requis pour démarrer !');
@@ -195,7 +246,8 @@ export default function Home() {
         targetName: target.name,
         targetPhoto: target.photo,
         completed: false,
-        validated: false
+        validated: false,
+        startedAt: Date.now()
       };
     });
     
@@ -230,18 +282,28 @@ export default function Home() {
     if (approved) {
       const hunter = players.find(p => p.id === confirmation.hunterId);
       const target = players.find(p => p.id === confirmation.targetId);
+      const mission = missions.find(m => m.id === confirmation.missionId);
+      
+      // Calculer les points bonus pour le chasseur
+      const timeBonus = mission ? calculateTimeBonus(mission.startedAt) : 0;
+      const totalHunterPoints = 10 + timeBonus; // 10 points de base + bonus temps
+      
+      // Calculer la pénalité pour la cible
+      const trapPenalty = mission ? calculateTrapPenalty(mission.startedAt) : 5;
       
       if (hunter) {
         await update(ref(database, `games/${gameCode}/players/${hunter.id}`), {
-          points: hunter.points + 10,
-          successful: hunter.successful + 1
+          points: hunter.points + totalHunterPoints,
+          successful: hunter.successful + 1,
+          lastBonus: timeBonus // Pour affichage
         });
       }
       
       if (target) {
         await update(ref(database, `games/${gameCode}/players/${target.id}`), {
-          points: Math.max(0, target.points - 5),
-          trapped: target.trapped + 1
+          points: Math.max(0, target.points - trapPenalty),
+          trapped: target.trapped + 1,
+          lastPenalty: trapPenalty // Pour affichage
         });
       }
 
@@ -258,7 +320,8 @@ export default function Home() {
           targetName: newTarget.name,
           targetPhoto: newTarget.photo,
           mission: newMissionTemplate.replace('{target}', newTarget.name),
-          completed: false
+          completed: false,
+          startedAt: Date.now() // Nouveau timestamp pour la nouvelle mission
         });
       }
     }
@@ -654,9 +717,19 @@ export default function Home() {
               <div className="flex-1">
                 <h2 className="text-3xl font-black text-gray-800 mb-1">{player.name}</h2>
                 <div className="flex gap-4 text-sm flex-wrap">
-                  <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold">🏆 {player.points} pts</span>
+                  <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold">
+                    🏆 {player.points} pts
+                    {player.lastBonus > 0 && (
+                      <span className="text-green-600 ml-1">+{player.lastBonus}</span>
+                    )}
+                  </span>
                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">✅ {player.successful}</span>
-                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold">❌ {player.trapped}</span>
+                  <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold">
+                    ❌ {player.trapped}
+                    {player.lastPenalty > 0 && (
+                      <span className="text-red-600 ml-1">-{player.lastPenalty}</span>
+                    )}
+                  </span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -708,25 +781,54 @@ export default function Home() {
                 </div>
                 Votre mission
               </h3>
-              <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-3 border-indigo-300">
-                <div className="flex items-center gap-4 mb-4">
-                  <img src={myMission.targetPhoto} alt={myMission.targetName} className="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-xl" />
-                  <div>
-                    <p className="text-sm text-gray-600 font-semibold mb-1">🎯 Votre cible:</p>
-                    <p className="text-3xl font-black text-gray-800">{myMission.targetName}</p>
+              
+              {!missionVisible ? (
+                // Mission cachée - Bouton pour révéler
+                <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-12 border-3 border-indigo-300 text-center">
+                  <div className="mb-6">
+                    <div className="inline-block p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mb-4">
+                      <Target className="w-16 h-16 text-white" />
+                    </div>
+                    <h4 className="text-3xl font-black text-gray-800 mb-2">Mission secrète 🤫</h4>
+                    <p className="text-gray-600 text-lg">Votre mission vous attend...</p>
+                  </div>
+                  <button
+                    onClick={() => setMissionVisible(true)}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-12 py-5 rounded-xl font-bold text-xl hover:from-indigo-700 hover:to-purple-700 transition shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3 mx-auto"
+                  >
+                    👁️ Voir ma mission
+                  </button>
+                </div>
+              ) : (
+                // Mission visible
+                <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-3 border-indigo-300">
+                  <div className="flex items-center gap-4 mb-4">
+                    <img src={myMission.targetPhoto} alt={myMission.targetName} className="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-xl" />
+                    <div>
+                      <p className="text-sm text-gray-600 font-semibold mb-1">🎯 Votre cible:</p>
+                      <p className="text-3xl font-black text-gray-800">{myMission.targetName}</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl p-5 mb-4 shadow-lg border-2 border-indigo-200">
+                    <p className="text-sm text-gray-600 font-semibold mb-2">📝 Votre mission:</p>
+                    <p className="text-xl font-bold text-gray-800">{myMission.mission}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setMissionVisible(false)}
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition"
+                    >
+                      🙈 Cacher
+                    </button>
+                    <button
+                      onClick={() => completeMission(myMission.id)}
+                      className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition shadow-lg hover:shadow-xl hover:scale-105"
+                    >
+                      ✅ J'ai piégé ma cible !
+                    </button>
                   </div>
                 </div>
-                <div className="bg-white rounded-xl p-5 mb-4 shadow-lg border-2 border-indigo-200">
-                  <p className="text-sm text-gray-600 font-semibold mb-2">📝 Votre mission:</p>
-                  <p className="text-xl font-bold text-gray-800">{myMission.mission}</p>
-                </div>
-                <button
-                  onClick={() => completeMission(myMission.id)}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition shadow-lg hover:shadow-xl hover:scale-105"
-                >
-                  ✅ J'ai piégé ma cible !
-                </button>
-              </div>
+              )}
             </div>
           )}
 
