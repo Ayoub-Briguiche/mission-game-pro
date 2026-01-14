@@ -93,6 +93,36 @@ export default function Home() {
 
   const joinGame = async (code, name, photoUrl) => {
     try {
+      const gameRef = ref(database, `games/${code}`);
+      const snapshot = await onValue(gameRef, () => {}, { onlyOnce: true });
+      
+      // Vérifier si un joueur avec ce nom existe déjà
+      const gameData = await new Promise((resolve) => {
+        onValue(gameRef, (snap) => {
+          resolve(snap.val());
+        }, { onlyOnce: true });
+      });
+      
+      if (gameData && gameData.players) {
+        const existingPlayer = Object.values(gameData.players).find(
+          p => p.name.toLowerCase() === name.toLowerCase()
+        );
+        
+        if (existingPlayer) {
+          // Si le joueur existe déjà, réutiliser son ID
+          setCurrentPlayer(existingPlayer);
+          setMyRole('player');
+          setGameCode(code);
+          
+          localStorage.setItem('my-role', 'player');
+          localStorage.setItem('my-player-id', existingPlayer.id);
+          localStorage.setItem('game-code', code);
+          
+          listenToGame(code);
+          return;
+        }
+      }
+      
       const newPlayer = {
         id: Date.now().toString(),
         name,
@@ -118,10 +148,29 @@ export default function Home() {
     }
   };
 
-  const leaveGame = () => {
+  const leaveGame = async () => {
     if (confirm('Voulez-vous vraiment quitter cette partie ?')) {
+      // Si c'est un joueur, le supprimer de Firebase
+      if (myRole === 'player' && currentPlayer && gameCode) {
+        try {
+          await remove(ref(database, `games/${gameCode}/players/${currentPlayer.id}`));
+        } catch (e) {
+          console.error('Erreur lors de la suppression du joueur:', e);
+        }
+      }
+      
       localStorage.clear();
       window.location.reload();
+    }
+  };
+
+  const removePlayer = async (playerId) => {
+    if (confirm('Supprimer ce joueur de la partie ?')) {
+      try {
+        await remove(ref(database, `games/${gameCode}/players/${playerId}`));
+      } catch (e) {
+        alert('Erreur lors de la suppression : ' + e.message);
+      }
     }
   };
 
@@ -507,7 +556,16 @@ export default function Home() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map(player => (
-                <div key={player.id} className="group border-2 border-gray-200 rounded-2xl p-4 flex items-center gap-4 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50">
+                <div key={player.id} className="group relative border-2 border-gray-200 rounded-2xl p-4 flex items-center gap-4 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50">
+                  {/* Bouton supprimer (admin) */}
+                  <button
+                    onClick={() => removePlayer(player.id)}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-lg"
+                    title="Supprimer ce joueur"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                  
                   <div className="relative">
                     <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-4 ring-gray-200 group-hover:ring-indigo-400 transition-all" />
                     <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
