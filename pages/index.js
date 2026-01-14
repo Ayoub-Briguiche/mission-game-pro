@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { database } from '../lib/firebase';
-import { ref, onValue, set, update, remove } from 'firebase/database';
+import { ref, onValue, set, update, remove, get } from 'firebase/database';
 import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut } from 'lucide-react';
+import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut, Clock } from 'lucide-react';
 
 export default function Home() {
   const [gameState, setGameState] = useState('setup');
@@ -52,7 +52,8 @@ export default function Home() {
   const listenToGame = (code) => {
     const gameRef = ref(database, `games/${code}`);
     
-    onValue(gameRef, (snapshot) => {
+    // Écoute en TEMPS RÉEL (pas d'intervalle, Firebase push automatique)
+    const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setPlayers(Object.values(data.players || {}));
@@ -66,7 +67,12 @@ export default function Home() {
           if (player) setCurrentPlayer(player);
         }
       }
+    }, (error) => {
+      console.error('Erreur Firebase:', error);
     });
+
+    // Nettoyage à la déconnexion
+    return () => unsubscribe();
   };
 
   const createGame = async () => {
@@ -94,42 +100,34 @@ export default function Home() {
   const joinGame = async (code, name, photoUrl) => {
     try {
       const gameRef = ref(database, `games/${code}`);
-      const snapshot = await onValue(gameRef, () => {}, { onlyOnce: true });
       
-      // Vérifier si un joueur avec ce nom existe déjà
-      const gameData = await new Promise((resolve) => {
-        onValue(gameRef, (snap) => {
-          resolve(snap.val());
-        }, { onlyOnce: true });
-      });
+      // Vérifier que le jeu existe
+      const gameSnapshot = await get(gameRef);
+      if (!gameSnapshot.exists()) {
+        alert('❌ Ce code de partie n\'existe pas !');
+        return;
+      }
+
+      const gameData = gameSnapshot.val();
       
-      if (gameData && gameData.players) {
-        const existingPlayer = Object.values(gameData.players).find(
-          p => p.name.toLowerCase() === name.toLowerCase()
-        );
-        
-        if (existingPlayer) {
-          // Si le joueur existe déjà, réutiliser son ID
-          setCurrentPlayer(existingPlayer);
-          setMyRole('player');
-          setGameCode(code);
-          
-          localStorage.setItem('my-role', 'player');
-          localStorage.setItem('my-player-id', existingPlayer.id);
-          localStorage.setItem('game-code', code);
-          
-          listenToGame(code);
+      // VÉRIFIER LES NOMS EN DOUBLON (blocage strict)
+      if (gameData.players) {
+        const existingNames = Object.values(gameData.players).map(p => p.name.toLowerCase().trim());
+        if (existingNames.includes(name.toLowerCase().trim())) {
+          alert('❌ Ce nom est déjà utilisé dans cette partie !\n\nVeuillez choisir un autre nom.');
           return;
         }
       }
-      
+
+      // Créer le nouveau joueur
       const newPlayer = {
         id: Date.now().toString(),
-        name,
+        name: name.trim(),
         photo: photoUrl,
         points: 0,
         trapped: 0,
-        successful: 0
+        successful: 0,
+        joinedAt: Date.now()
       };
       
       await set(ref(database, `games/${code}/players/${newPlayer.id}`), newPlayer);
@@ -176,7 +174,7 @@ export default function Home() {
 
   const startGame = async () => {
     if (players.length < 3) {
-      alert('Minimum 3 joueurs requis !');
+      alert('❌ Minimum 3 joueurs requis pour démarrer !');
       return;
     }
 
@@ -203,7 +201,8 @@ export default function Home() {
     
     await update(ref(database, `games/${gameCode}`), {
       gameState: 'playing',
-      missions: newMissions
+      missions: newMissions,
+      startedAt: Date.now()
     });
   };
 
@@ -368,7 +367,7 @@ export default function Home() {
                 
                 <input
                   type="text"
-                  placeholder="Votre nom"
+                  placeholder="Votre nom (unique)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-4 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 bg-white transition-all"
@@ -461,13 +460,15 @@ export default function Home() {
       return <LeaderboardView />;
     }
 
+    const playersNeeded = Math.max(0, 3 - players.length);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
         <div className="max-w-7xl mx-auto">
           {/* Header avec gradient */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-2xl p-8 mb-6 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex-1 min-w-[300px]">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-white/20 rounded-lg">
                     <Trophy className="w-8 h-8" />
@@ -479,13 +480,13 @@ export default function Home() {
                     <p className="text-sm opacity-90 mb-1">Code de la partie</p>
                     <p className="font-mono font-black text-4xl tracking-wider">{gameCode}</p>
                   </div>
-                  <div className="text-sm opacity-75 flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Synchronisation en temps réel
+                  <div className="text-sm opacity-90 flex items-center gap-2 bg-green-500/30 px-4 py-2 rounded-lg">
+                    <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                    Synchro temps réel
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 flex-wrap justify-end">
+              <div className="flex gap-3 flex-wrap">
                 <button onClick={() => setShowQRCode(true)} className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 shadow-lg">
                   <QrCode className="w-5 h-5" />
                   QR Code
@@ -495,9 +496,9 @@ export default function Home() {
                   Scores
                 </button>
                 {gameState === 'lobby' && players.length >= 3 && (
-                  <button onClick={startGame} className="bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 animate-pulse flex items-center gap-2 shadow-lg">
-                    <Play className="w-5 h-5" />
-                    Démarrer
+                  <button onClick={startGame} className="bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 animate-pulse flex items-center gap-2 shadow-lg text-lg">
+                    <Play className="w-6 h-6" />
+                    🚀 DÉMARRER
                   </button>
                 )}
                 <button onClick={leaveGame} className="bg-white/20 text-white px-6 py-3 rounded-xl font-bold hover:bg-white/30 transition flex items-center gap-2">
@@ -511,6 +512,23 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Message d'attente si < 3 joueurs */}
+          {gameState === 'lobby' && players.length < 3 && (
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl shadow-lg p-6 mb-6 text-white animate-pulse">
+              <div className="flex items-center gap-4">
+                <Clock className="w-12 h-12" />
+                <div>
+                  <h3 className="text-2xl font-bold">⏳ En attente de joueurs...</h3>
+                  <p className="text-xl opacity-90">
+                    {playersNeeded === 3 && "Attendez que 3 joueurs rejoignent la partie"}
+                    {playersNeeded === 2 && "Encore 2 joueurs nécessaires pour démarrer"}
+                    {playersNeeded === 1 && "Plus qu'1 joueur ! On y est presque ! 🎉"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Stats avec animations */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow">
@@ -521,6 +539,9 @@ export default function Home() {
                 <div>
                   <p className="text-4xl font-black text-gray-800">{players.length}</p>
                   <p className="text-gray-600 font-semibold">Joueurs inscrits</p>
+                  {players.length < 3 && (
+                    <p className="text-sm text-orange-600 font-bold mt-1">Min: 3 joueurs</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -585,11 +606,6 @@ export default function Home() {
                 <p className="text-gray-400 mt-2">Partagez le QR code pour commencer !</p>
               </div>
             )}
-            {players.length > 0 && players.length < 3 && (
-              <div className="text-center mt-6 p-6 bg-blue-50 border-2 border-blue-300 rounded-2xl">
-                <p className="text-blue-800 font-bold text-xl">⏳ Encore {3 - players.length} joueur(s) minimum</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -620,6 +636,8 @@ export default function Home() {
       );
     }
 
+    const playersNeeded = Math.max(0, 3 - players.length);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4">
         <div className="max-w-2xl mx-auto pt-4">
@@ -631,10 +649,11 @@ export default function Home() {
                 <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1 rounded-full text-white font-bold text-sm">
                   #{players.sort((a, b) => b.points - a.points).findIndex(p => p.id === player.id) + 1}
                 </div>
+                <div className="absolute -top-2 -left-2 bg-green-500 w-4 h-4 rounded-full border-2 border-white animate-pulse"></div>
               </div>
               <div className="flex-1">
                 <h2 className="text-3xl font-black text-gray-800 mb-1">{player.name}</h2>
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm flex-wrap">
                   <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold">🏆 {player.points} pts</span>
                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">✅ {player.successful}</span>
                   <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold">❌ {player.trapped}</span>
@@ -650,6 +669,35 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Message d'attente si < 3 joueurs */}
+          {gameState === 'lobby' && (
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mb-4 text-center">
+              <div className="inline-block p-4 bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl mb-4 animate-pulse">
+                <Clock className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">⏳ En attente...</h3>
+              {playersNeeded > 0 ? (
+                <>
+                  <p className="text-gray-600 text-lg mb-2">
+                    L'organisateur attend encore <span className="font-bold text-orange-600">{playersNeeded}</span> joueur{playersNeeded > 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-gray-500">Minimum 3 joueurs pour démarrer</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-green-600 text-lg font-bold mb-2">
+                    ✅ Tous les joueurs sont là !
+                  </p>
+                  <p className="text-gray-600">L'organisateur va lancer le jeu...</p>
+                </>
+              )}
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Connexion temps réel
+              </div>
+            </div>
+          )}
 
           {/* Mission actuelle */}
           {gameState === 'playing' && myMission && (
@@ -687,7 +735,7 @@ export default function Home() {
             <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
               <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                 ⚠️ Confirmations requises
-                <span className="bg-orange-500 text-white text-sm px-3 py-1 rounded-full">{myConfirmations.length}</span>
+                <span className="bg-orange-500 text-white text-sm px-3 py-1 rounded-full animate-pulse">{myConfirmations.length}</span>
               </h3>
               {myConfirmations.map(conf => {
                 const hunter = players.find(p => p.id === conf.hunterId);
@@ -725,20 +773,6 @@ export default function Home() {
               })}
             </div>
           )}
-
-          {gameState === 'lobby' && (
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-12 text-center">
-              <div className="inline-block p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mb-4">
-                <Target className="w-16 h-16 text-white animate-pulse" />
-              </div>
-              <h3 className="text-3xl font-bold text-gray-800 mb-2">⏳ En attente</h3>
-              <p className="text-gray-600 text-lg">L'organisateur va lancer le jeu...</p>
-              <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Synchronisation automatique
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -752,7 +786,7 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-4">
         <div className="max-w-6xl mx-auto pt-4">
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl">
                   <Trophy className="w-12 h-12 text-white" />
