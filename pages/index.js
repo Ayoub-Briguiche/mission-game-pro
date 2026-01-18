@@ -392,32 +392,42 @@ export default function Home() {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4 relative overflow-hidden">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
-          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden">
+        {/* Grille cyberpunk */}
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `
+            linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}></div>
+
+        {/* Éléments lumineux */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-400/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-cyan-400/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
 
         <div className="max-w-lg mx-auto pt-8 relative z-10">
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+          <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border-2 border-purple-500/50 relative overflow-hidden">
+            {/* Effet glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-pink-600/5 to-cyan-600/5"></div>
+            
             {/* Logo et titre */}
-            <div className="text-center mb-8">
-              <div className="inline-block p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+            <div className="text-center mb-8 relative z-10">
+              <div className="inline-block p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-4 shadow-lg shadow-purple-500/50 border border-purple-400/50">
                 <Target className="w-16 h-16 text-white" />
               </div>
-              <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-2 animate-pulse">
                 Mission Game
               </h1>
-              <p className="text-gray-600 text-lg font-medium">Piégez vos collègues avec style !</p>
+              <p className="text-purple-300 text-lg font-medium">Piégez vos collègues avec style !</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 relative z-10">
               {/* Bouton créer partie */}
               <button
                 onClick={createGame}
-                className="group w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-5 rounded-2xl font-bold text-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-3"
+                className="group w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-5 rounded-2xl font-bold text-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/70 hover:scale-105 flex items-center justify-center gap-3 border border-purple-400/50"
               >
                 <div className="p-2 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform">
                   <Play className="w-6 h-6" />
@@ -427,16 +437,16 @@ export default function Home() {
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t-2 border-gray-300"></div>
+                  <div className="w-full border-t-2 border-purple-500/30"></div>
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="px-4 py-1 bg-white text-gray-500 font-bold text-sm rounded-full">OU</span>
+                  <span className="px-4 py-1 bg-black text-purple-400 font-bold text-sm rounded-full border border-purple-500/50">OU</span>
                 </div>
               </div>
 
               {/* Section rejoindre */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 space-y-4 border-2 border-blue-200">
-                <h3 className="font-bold text-indigo-900 text-center text-xl flex items-center justify-center gap-2">
+              <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-2xl p-6 space-y-4 border-2 border-purple-500/50 backdrop-blur-sm shadow-lg shadow-purple-500/20">
+                <h3 className="font-bold text-purple-300 text-center text-xl flex items-center justify-center gap-2">
                   <Users className="w-5 h-5" />
                   Rejoindre une partie
                 </h3>
@@ -446,7 +456,7 @@ export default function Home() {
                   placeholder="CODE (ex: ABC123)"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-4 border-3 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-center text-2xl font-mono font-bold bg-white transition-all"
+                  className="w-full px-4 py-4 border-3 border-purple-500/50 bg-black/50 text-white rounded-xl focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 text-center text-2xl font-mono font-bold transition-all placeholder-purple-500/50"
                   maxLength={6}
                 />
                 
@@ -455,24 +465,24 @@ export default function Home() {
                   placeholder="Votre nom (unique)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-4 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 bg-white transition-all"
+                  className="w-full px-4 py-4 border-2 border-purple-500/50 bg-black/50 text-white rounded-xl focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all placeholder-purple-500/50"
                 />
 
-                <div className="border-3 border-dashed border-indigo-300 rounded-xl p-6 text-center bg-white hover:bg-indigo-50 transition-colors">
+                <div className="border-3 border-dashed border-purple-500/50 rounded-xl p-6 text-center bg-black/30 hover:bg-purple-900/20 transition-colors">
                   {photo ? (
                     <div className="relative inline-block">
-                      <img src={photo} alt="Photo" className="w-32 h-32 rounded-full mx-auto object-cover border-4 border-indigo-300 shadow-lg" />
-                      <div className="absolute -bottom-2 -right-2 p-2 bg-green-500 rounded-full border-4 border-white">
+                      <img src={photo} alt="Photo" className="w-32 h-32 rounded-full mx-auto object-cover border-4 border-purple-500/50 shadow-lg shadow-purple-500/50" />
+                      <div className="absolute -bottom-2 -right-2 p-2 bg-green-500 rounded-full border-4 border-black shadow-lg shadow-green-500/50">
                         <CheckCircle className="w-5 h-5 text-white" />
                       </div>
                     </div>
                   ) : (
                     <div className="py-4">
-                      <div className="inline-block p-4 bg-indigo-100 rounded-full mb-3">
-                        <Camera className="w-12 h-12 text-indigo-600" />
+                      <div className="inline-block p-4 bg-purple-500/20 rounded-full mb-3 border border-purple-400/50">
+                        <Camera className="w-12 h-12 text-purple-400" />
                       </div>
-                      <p className="text-indigo-700 font-bold">Photo obligatoire</p>
-                      <p className="text-sm text-gray-500 mt-1">Caméra ou Galerie</p>
+                      <p className="text-purple-300 font-bold">Photo obligatoire</p>
+                      <p className="text-sm text-purple-500 mt-1">Caméra ou Galerie</p>
                     </div>
                   )}
                   <input 
@@ -482,7 +492,7 @@ export default function Home() {
                     className="hidden" 
                     id="photo" 
                   />
-                  <label htmlFor="photo" className="mt-4 inline-block bg-indigo-600 text-white px-8 py-3 rounded-xl cursor-pointer hover:bg-indigo-700 font-bold transition-all hover:scale-105 shadow-md">
+                  <label htmlFor="photo" className="mt-4 inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-xl cursor-pointer hover:from-purple-700 hover:to-pink-700 font-bold transition-all hover:scale-105 shadow-md shadow-purple-500/50 border border-purple-400/50">
                     {photo ? '✓ Changer la photo' : '📷 Ajouter une photo'}
                   </label>
                 </div>
@@ -490,7 +500,7 @@ export default function Home() {
                 <button
                   onClick={() => code && name && photo && joinGame(code, name, photo)}
                   disabled={!code || !name || !photo}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:hover:shadow-lg hover:scale-105 disabled:hover:scale-100"
+                  className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white py-5 rounded-xl font-bold text-lg hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 disabled:from-gray-700 disabled:to-gray-800 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/50 hover:shadow-xl disabled:hover:shadow-lg hover:scale-105 disabled:hover:scale-100 disabled:opacity-50 border border-cyan-400/50"
                 >
                   ✅ Rejoindre la partie !
                 </button>
@@ -498,8 +508,8 @@ export default function Home() {
             </div>
 
             {/* Footer */}
-            <div className="mt-8 text-center">
-              <p className="text-xs text-gray-500">
+            <div className="mt-8 text-center relative z-10">
+              <p className="text-xs text-purple-500">
                 🔒 Sécurisé • ⚡ Temps réel • 🎯 100% Gratuit
               </p>
             </div>
@@ -555,49 +565,69 @@ export default function Home() {
     const playersNeeded = Math.max(0, 3 - players.length);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          {/* Header avec gradient */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl shadow-2xl p-8 mb-6 text-white">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden">
+        {/* Grille cyberpunk en fond */}
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `
+            linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}></div>
+        
+        {/* Éléments lumineux flottants */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          {/* Header avec effet néon */}
+          <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 mb-6 border border-purple-500/30 relative overflow-hidden">
+            {/* Effet glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-cyan-600/10 animate-pulse"></div>
+            
+            <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
               <div className="flex-1 min-w-[300px]">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Trophy className="w-8 h-8" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg shadow-lg shadow-purple-500/50">
+                    <Trophy className="w-8 h-8 text-white" />
                   </div>
-                  <h1 className="text-4xl font-black">Dashboard Organisateur</h1>
+                  <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 animate-pulse">
+                    Dashboard Organisateur
+                  </h1>
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl px-6 py-3">
-                    <p className="text-sm opacity-90 mb-1">Code de la partie</p>
-                    <p className="font-mono font-black text-4xl tracking-wider">{gameCode}</p>
+                  <div className="bg-gradient-to-r from-purple-900/50 to-pink-900/50 backdrop-blur-sm rounded-xl px-6 py-3 border border-purple-500/50 shadow-lg shadow-purple-500/30">
+                    <p className="text-sm text-purple-300 mb-1 font-bold">Code de la partie</p>
+                    <p className="font-mono font-black text-4xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                      {gameCode}
+                    </p>
                   </div>
-                  <div className="text-sm opacity-90 flex items-center gap-2 bg-green-500/30 px-4 py-2 rounded-lg">
-                    <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                  <div className="text-sm text-cyan-400 flex items-center gap-2 bg-cyan-900/30 px-4 py-2 rounded-lg border border-cyan-500/30">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-lg shadow-cyan-400/50"></div>
                     Synchro temps réel
                   </div>
                 </div>
               </div>
               <div className="flex gap-3 flex-wrap">
-                <button onClick={() => setShowQRCode(true)} className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition flex items-center gap-2 shadow-lg">
+                <button onClick={() => setShowQRCode(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition flex items-center gap-2 shadow-lg shadow-purple-500/50 border border-purple-400/50">
                   <QrCode className="w-5 h-5" />
                   QR Code
                 </button>
-                <button onClick={() => setShowLeaderboard(true)} className="bg-yellow-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-yellow-600 transition flex items-center gap-2 shadow-lg">
+                <button onClick={() => setShowLeaderboard(true)} className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-6 py-3 rounded-xl font-bold hover:from-yellow-700 hover:to-orange-700 transition flex items-center gap-2 shadow-lg shadow-yellow-500/50 border border-yellow-400/50">
                   <Trophy className="w-5 h-5" />
                   Scores
                 </button>
                 {gameState === 'lobby' && players.length >= 3 && (
-                  <button onClick={startGame} className="bg-green-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-600 animate-pulse flex items-center gap-2 shadow-lg text-lg">
+                  <button onClick={startGame} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 animate-pulse flex items-center gap-2 shadow-lg shadow-green-500/50 text-lg border border-green-400/50">
                     <Play className="w-6 h-6" />
                     🚀 DÉMARRER
                   </button>
                 )}
-                <button onClick={leaveGame} className="bg-white/20 text-white px-6 py-3 rounded-xl font-bold hover:bg-white/30 transition flex items-center gap-2">
+                <button onClick={leaveGame} className="bg-gray-800/80 text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-700 transition flex items-center gap-2 border border-gray-600/50">
                   <LogOut className="w-5 h-5" />
                   Quitter
                 </button>
-                <button onClick={resetGame} className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 transition shadow-lg">
+                <button onClick={resetGame} className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-red-700 hover:to-pink-700 transition shadow-lg shadow-red-500/50 border border-red-400/50">
                   Reset
                 </button>
               </div>
@@ -606,12 +636,14 @@ export default function Home() {
 
           {/* Message d'attente si < 3 joueurs */}
           {gameState === 'lobby' && players.length < 3 && (
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl shadow-lg p-6 mb-6 text-white animate-pulse">
+            <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-6 border border-orange-500/50 shadow-orange-500/30 animate-pulse">
               <div className="flex items-center gap-4">
-                <Clock className="w-12 h-12" />
+                <div className="p-3 bg-orange-500/20 rounded-xl border border-orange-400/50 shadow-lg shadow-orange-500/50">
+                  <Clock className="w-12 h-12 text-orange-400" />
+                </div>
                 <div>
-                  <h3 className="text-2xl font-bold">⏳ En attente de joueurs...</h3>
-                  <p className="text-xl opacity-90">
+                  <h3 className="text-2xl font-bold text-orange-200">⏳ En attente de joueurs...</h3>
+                  <p className="text-xl text-orange-300">
                     {playersNeeded === 3 && "Attendez que 3 joueurs rejoignent la partie"}
                     {playersNeeded === 2 && "Encore 2 joueurs nécessaires pour démarrer"}
                     {playersNeeded === 1 && "Plus qu'1 joueur ! On y est presque ! 🎉"}
@@ -621,81 +653,89 @@ export default function Home() {
             </div>
           )}
 
-          {/* Stats avec animations */}
+          {/* Stats avec effets néon colorés */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-indigo-500 hover:shadow-xl transition-shadow">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-indigo-100 rounded-xl">
-                  <Users className="w-8 h-8 text-indigo-600" />
+            {/* Carte 1 - Rose néon */}
+            <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border-2 border-pink-500/50 hover:border-pink-400 transition-all hover:shadow-2xl hover:shadow-pink-500/50 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="p-4 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl border border-pink-400/50 shadow-lg shadow-pink-500/30">
+                  <Users className="w-8 h-8 text-pink-400" />
                 </div>
                 <div>
-                  <p className="text-4xl font-black text-gray-800">{players.length}</p>
-                  <p className="text-gray-600 font-semibold">Joueurs inscrits</p>
+                  <p className="text-5xl font-black text-pink-400">{players.length}</p>
+                  <p className="text-pink-300 font-semibold">Joueurs inscrits</p>
                   {players.length < 3 && (
-                    <p className="text-sm text-orange-600 font-bold mt-1">Min: 3 joueurs</p>
+                    <p className="text-sm text-orange-400 font-bold mt-1">Min: 3 joueurs</p>
                   )}
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-green-100 rounded-xl">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+
+            {/* Carte 2 - Cyan néon */}
+            <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border-2 border-cyan-500/50 hover:border-cyan-400 transition-all hover:shadow-2xl hover:shadow-cyan-500/50 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="p-4 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-xl border border-cyan-400/50 shadow-lg shadow-cyan-500/30">
+                  <CheckCircle className="w-8 h-8 text-cyan-400" />
                 </div>
                 <div>
-                  <p className="text-4xl font-black text-gray-800">{missions.filter(m => m.validated).length}</p>
-                  <p className="text-gray-600 font-semibold">Missions validées</p>
+                  <p className="text-5xl font-black text-cyan-400">{missions.filter(m => m.validated).length}</p>
+                  <p className="text-cyan-300 font-semibold">Missions validées</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-orange-100 rounded-xl">
-                  <Target className="w-8 h-8 text-orange-600" />
+
+            {/* Carte 3 - Orange néon */}
+            <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border-2 border-orange-500/50 hover:border-orange-400 transition-all hover:shadow-2xl hover:shadow-orange-500/50 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="p-4 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-xl border border-orange-400/50 shadow-lg shadow-orange-500/30">
+                  <Target className="w-8 h-8 text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-4xl font-black text-gray-800">{pendingConfirmations.length}</p>
-                  <p className="text-gray-600 font-semibold">En attente</p>
+                  <p className="text-5xl font-black text-orange-400">{pendingConfirmations.length}</p>
+                  <p className="text-orange-300 font-semibold">En attente</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Liste des joueurs */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <Users className="w-7 h-7 text-indigo-600" />
+          {/* Liste des joueurs avec design gaming */}
+          <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-purple-500/30">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-purple-300">
+              <Users className="w-7 h-7 text-purple-400" />
               Joueurs inscrits ({players.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {players.map(player => (
-                <div key={player.id} className="group relative border-2 border-gray-200 rounded-2xl p-4 flex items-center gap-4 hover:border-indigo-400 hover:shadow-lg transition-all duration-300 bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50">
-                  {/* Bouton supprimer (admin) */}
+                <div key={player.id} className="group relative bg-gray-900/60 border-2 border-gray-700/50 hover:border-purple-500/50 rounded-2xl p-4 flex items-center gap-4 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+                  {/* Bouton supprimer */}
                   <button
                     onClick={() => removePlayer(player.id)}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-lg"
+                    className="absolute top-2 right-2 bg-red-500/80 text-white p-1.5 rounded-full hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-lg border border-red-400/50"
                     title="Supprimer ce joueur"
                   >
                     <XCircle className="w-4 h-4" />
                   </button>
                   
                   <div className="relative">
-                    <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-4 ring-gray-200 group-hover:ring-indigo-400 transition-all" />
-                    <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-white"></div>
+                    <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-4 ring-purple-500/50 group-hover:ring-pink-500/50 transition-all shadow-lg" />
+                    <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-gray-900 shadow-lg shadow-green-500/50"></div>
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-800 text-lg">{player.name}</h3>
-                    <p className="text-indigo-600 font-semibold">🏆 {player.points} pts</p>
-                    <p className="text-xs text-gray-500">✅ {player.successful} • ❌ {player.trapped}</p>
+                    <h3 className="font-bold text-gray-100 text-lg">{player.name}</h3>
+                    <p className="text-purple-400 font-semibold">🏆 {player.points} pts</p>
+                    <p className="text-xs text-gray-400">✅ {player.successful} • ❌ {player.trapped}</p>
                   </div>
                 </div>
               ))}
             </div>
             {players.length === 0 && (
-              <div className="text-center py-16 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl">
-                <Users className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-xl font-semibold">En attente des joueurs...</p>
-                <p className="text-gray-400 mt-2">Partagez le QR code pour commencer !</p>
+              <div className="text-center py-16 bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-2xl border border-purple-500/30">
+                <Users className="w-20 h-20 text-purple-500/30 mx-auto mb-4" />
+                <p className="text-purple-400 text-xl font-semibold">En attente des joueurs...</p>
+                <p className="text-purple-500 mt-2">Partagez le QR code pour commencer !</p>
               </div>
             )}
           </div>
