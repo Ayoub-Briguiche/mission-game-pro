@@ -18,6 +18,7 @@ export default function Home() {
   const [missionVisible, setMissionVisible] = useState(false);
   const [waitingForValidation, setWaitingForValidation] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activityFeed, setActivityFeed] = useState([]);
 
   const missionTemplates = [
     "Demander à {target} de vous recommander 3 films",
@@ -63,6 +64,22 @@ export default function Home() {
       }
     }
   }, [pendingConfirmations, myRole, currentPlayer, waitingForValidation]);
+
+  // Écouter le feed d'activité
+  useEffect(() => {
+    if (!gameCode) return;
+    const feedRef = ref(database, `games/${gameCode}/activityFeed`);
+    const unsubscribe = onValue(feedRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const feedData = snapshot.val();
+        const feedArray = Object.values(feedData).sort((a, b) => b.timestamp - a.timestamp);
+        setActivityFeed(feedArray);
+      } else {
+        setActivityFeed([]);
+      }
+    });
+    return () => unsubscribe();
+  }, [gameCode]);
 
   const loadLocalData = () => {
     const savedRole = localStorage.getItem('my-role');
@@ -1029,24 +1046,6 @@ export default function Home() {
 
   // CLASSEMENT
   const LeaderboardView = () => {
-    const [activityFeed, setActivityFeed] = useState([]);
-
-    // Écouter le feed d'activité
-    useEffect(() => {
-      if (!gameCode) return;
-      const feedRef = ref(database, `games/${gameCode}/activityFeed`);
-      const unsubscribe = onValue(feedRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const feedData = snapshot.val();
-          const feedArray = Object.values(feedData).sort((a, b) => b.timestamp - a.timestamp);
-          setActivityFeed(feedArray);
-        } else {
-          setActivityFeed([]);
-        }
-      });
-      return () => unsubscribe();
-    }, [gameCode]);
-
     const sortedPlayers = [...players].sort((a, b) => b.points - a.points);
 
     return (
