@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { database } from '../lib/firebase';
 import { ref, onValue, set, update, remove, get } from 'firebase/database';
 import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut, Clock } from 'lucide-react';
+import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut, Clock, Maximize, Minimize } from 'lucide-react';
 
 export default function Home() {
   const [gameState, setGameState] = useState('setup');
@@ -17,6 +17,7 @@ export default function Home() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [missionVisible, setMissionVisible] = useState(false);
   const [waitingForValidation, setWaitingForValidation] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const missionTemplates = [
     "Demander à {target} de vous recommander 3 films",
@@ -199,6 +200,33 @@ export default function Home() {
       }
     }
   };
+
+  // Gestion du plein écran
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      // Entrer en plein écran
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error('Erreur plein écran:', err);
+      });
+    } else {
+      // Sortir du plein écran
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  // Écouter les changements de plein écran
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Calculer les points bonus selon le temps (1-1000 points)
   const calculateTimeBonus = (missionStartTime) => {
@@ -609,6 +637,10 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex gap-3 flex-wrap">
+                <button onClick={toggleFullscreen} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition flex items-center gap-2 shadow-lg shadow-indigo-500/50 border border-indigo-400/50">
+                  {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                  {isFullscreen ? 'Quitter' : 'Plein écran'}
+                </button>
                 <button onClick={() => setShowQRCode(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition flex items-center gap-2 shadow-lg shadow-purple-500/50 border border-purple-400/50">
                   <QrCode className="w-5 h-5" />
                   QR Code
