@@ -593,7 +593,7 @@ export default function Home() {
     const playersNeeded = Math.max(0, 3 - players.length);
 
     return (
-      <div className="min-h-screen h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-6 relative overflow-hidden flex flex-col">
+      <div className="min-h-screen h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden flex flex-col">
         {/* Grille cyberpunk en fond */}
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: `
@@ -607,9 +607,9 @@ export default function Home() {
         <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
 
-        <div className="max-w-7xl mx-auto w-full relative z-10 flex-1 flex flex-col">
+        <div className="w-full h-full relative z-10 flex flex-col">
           {/* Header avec effet néon */}
-          <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-6 border border-purple-500/30 relative overflow-hidden flex-shrink-0">
+          <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-4 border border-purple-500/30 relative overflow-hidden flex-shrink-0">
             {/* Effet glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-cyan-600/10 animate-pulse"></div>
             
@@ -668,7 +668,7 @@ export default function Home() {
 
           {/* Message d'attente si < 3 joueurs */}
           {gameState === 'lobby' && players.length < 3 && (
-            <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-6 border border-orange-500/50 shadow-orange-500/30 animate-pulse flex-shrink-0">
+            <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-4 border border-orange-500/50 shadow-orange-500/30 animate-pulse flex-shrink-0">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-orange-500/20 rounded-xl border border-orange-400/50 shadow-lg shadow-orange-500/50">
                   <Clock className="w-10 h-10 text-orange-400" />
@@ -686,7 +686,7 @@ export default function Home() {
           )}
 
           {/* Stats avec effets néon colorés */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 flex-shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-shrink-0">
             {/* Carte 1 - Rose néon */}
             <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 border-2 border-pink-500/50 hover:border-pink-400 transition-all hover:shadow-2xl hover:shadow-pink-500/50 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-pink-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -739,9 +739,9 @@ export default function Home() {
               <Users className="w-6 h-6 text-purple-400" />
               Joueurs inscrits ({players.length})
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto flex-1">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 overflow-y-auto flex-1">
               {players.map(player => (
-                <div key={player.id} className="group relative bg-gray-900/60 border-2 border-gray-700/50 hover:border-purple-500/50 rounded-2xl p-3 flex items-center gap-3 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 h-fit">
+                <div key={player.id} className="group relative bg-gray-900/60 border-2 border-gray-700/50 hover:border-purple-500/50 rounded-2xl p-3 flex flex-col items-center gap-2 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 h-fit">
                   {/* Bouton supprimer */}
                   <button
                     onClick={() => removePlayer(player.id)}
@@ -752,12 +752,12 @@ export default function Home() {
                   </button>
                   
                   <div className="relative flex-shrink-0">
-                    <img src={player.photo} alt={player.name} className="w-14 h-14 rounded-full object-cover ring-4 ring-purple-500/50 group-hover:ring-pink-500/50 transition-all shadow-lg" />
+                    <img src={player.photo} alt={player.name} className="w-16 h-16 rounded-full object-cover ring-4 ring-purple-500/50 group-hover:ring-pink-500/50 transition-all shadow-lg" />
                     <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-gray-900 shadow-lg shadow-green-500/50"></div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-100 text-base truncate">{player.name}</h3>
-                    <p className="text-purple-400 font-semibold text-sm">🏆 {player.points} pts</p>
+                  <div className="flex-1 text-center w-full">
+                    <h3 className="font-bold text-gray-100 text-sm truncate">{player.name}</h3>
+                    <p className="text-purple-400 font-semibold text-xs">🏆 {player.points} pts</p>
                     <p className="text-xs text-gray-400">✅ {player.successful} • ❌ {player.trapped}</p>
                   </div>
                 </div>
