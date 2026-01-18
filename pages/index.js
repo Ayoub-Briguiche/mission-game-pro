@@ -301,6 +301,16 @@ export default function Home() {
       missions: newMissions,
       startedAt: Date.now()
     });
+    
+    // Ajouter un message de début de jeu au feed
+    const startActivityId = Date.now().toString();
+    const startMessage = {
+      id: startActivityId,
+      icon: '🚀',
+      message: `Le jeu a commencé ! ${players.length} joueurs en compétition. Que le meilleur gagne ! 🏆`,
+      timestamp: Date.now()
+    };
+    await set(ref(database, `games/${gameCode}/activityFeed/${startActivityId}`), startMessage);
   };
 
   const completeMission = async (missionId) => {
@@ -355,6 +365,22 @@ export default function Home() {
           trapped: target.trapped + 1,
           lastPenalty: trapPenalty // Pour affichage
         });
+      }
+
+      // Ajouter un message au feed d'activité
+      if (hunter && target && mission) {
+        const activityId = Date.now().toString();
+        const activityMessage = {
+          id: activityId,
+          icon: '🎯',
+          message: `${hunter.name} a piégé ${target.name} ! Mission : ${mission.mission}`,
+          timestamp: Date.now(),
+          hunterName: hunter.name,
+          targetName: target.name,
+          mission: mission.mission,
+          points: totalHunterPoints
+        };
+        await set(ref(database, `games/${gameCode}/activityFeed/${activityId}`), activityMessage);
       }
 
       const availableTargets = players.filter(p => 
@@ -1003,86 +1029,177 @@ export default function Home() {
 
   // CLASSEMENT
   const LeaderboardView = () => {
+    const [activityFeed, setActivityFeed] = useState([]);
+
+    // Écouter le feed d'activité
+    useEffect(() => {
+      if (!gameCode) return;
+      const feedRef = ref(database, `games/${gameCode}/activityFeed`);
+      const unsubscribe = onValue(feedRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const feedData = snapshot.val();
+          const feedArray = Object.values(feedData).sort((a, b) => b.timestamp - a.timestamp);
+          setActivityFeed(feedArray);
+        } else {
+          setActivityFeed([]);
+        }
+      });
+      return () => unsubscribe();
+    }, [gameCode]);
+
     const sortedPlayers = [...players].sort((a, b) => b.points - a.points);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-4">
-        <div className="max-w-6xl mx-auto pt-4">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
-            <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl">
-                  <Trophy className="w-12 h-12 text-white" />
+      <div className="min-h-screen h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden flex flex-col">
+        {/* Grille cyberpunk en fond */}
+        <div className="absolute inset-0 opacity-20" style={{
+          backgroundImage: `
+            linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }}></div>
+
+        {/* Éléments lumineux */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+
+        <div className="w-full h-full relative z-10 flex flex-col">
+          {/* Header */}
+          <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-4 border border-purple-500/30 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg shadow-lg shadow-yellow-500/50">
+                  <Trophy className="w-7 h-7 text-white" />
                 </div>
-                <h1 className="text-5xl font-black bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-                  Classement
-                </h1>
+                <div>
+                  <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 animate-pulse">
+                    🏆 Tableau de Bord Live
+                  </h1>
+                  <p className="text-cyan-400 text-sm flex items-center gap-2">
+                    <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-lg shadow-cyan-400/50"></div>
+                    Mise à jour en temps réel
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setShowLeaderboard(false)} className="bg-gray-200 text-gray-700 px-8 py-3 rounded-xl font-bold hover:bg-gray-300 transition-all hover:scale-105 shadow-lg flex items-center gap-2">
+              <button
+                onClick={() => setShowLeaderboard(false)}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition flex items-center gap-2 shadow-lg shadow-purple-500/50 border border-purple-400/50"
+              >
                 <ArrowLeft className="w-5 h-5" />
                 Retour
               </button>
             </div>
+          </div>
 
-            <div className="space-y-4">
-              {sortedPlayers.map((player, index) => (
-                <div
-                  key={player.id}
-                  className={`flex items-center gap-6 p-6 rounded-2xl transition-all hover:scale-102 ${
-                    index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 border-4 border-yellow-400 scale-105 shadow-2xl' :
-                    index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-50 border-4 border-gray-400 shadow-xl' :
-                    index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-50 border-4 border-orange-400 shadow-xl' :
-                    'bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-gray-200 shadow-lg'
-                  }`}
-                >
-                  <div className={`text-6xl font-black w-20 text-center ${
-                    index === 0 ? 'animate-bounce' : ''
-                  }`}>
-                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                  </div>
-                  <div className="relative">
-                    <img src={player.photo} alt={player.name} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl" />
-                    {index < 3 && (
-                      <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 p-2 rounded-full">
-                        <Trophy className="w-5 h-5 text-white" />
+          {/* Layout 2 colonnes : Classement + Feed */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+            {/* COLONNE GAUCHE - CLASSEMENT */}
+            <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-purple-500/30 flex flex-col min-h-0">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-3 text-purple-300 flex-shrink-0">
+                <Trophy className="w-7 h-7 text-yellow-400" />
+                Classement des Joueurs
+              </h2>
+              <div className="space-y-3 overflow-y-auto flex-1">
+                {sortedPlayers.map((player, index) => {
+                  const isTop3 = index < 3;
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const borderColors = [
+                    'border-yellow-500/70 shadow-yellow-500/50',
+                    'border-gray-400/70 shadow-gray-400/50',
+                    'border-orange-600/70 shadow-orange-600/50'
+                  ];
+                  const bgColors = [
+                    'from-yellow-900/40 to-orange-900/40',
+                    'from-gray-800/40 to-gray-700/40',
+                    'from-orange-900/40 to-red-900/40'
+                  ];
+
+                  return (
+                    <div
+                      key={player.id}
+                      className={`bg-gradient-to-r ${isTop3 ? bgColors[index] : 'from-gray-900/60 to-gray-800/60'} backdrop-blur-sm rounded-2xl p-4 border-2 ${isTop3 ? borderColors[index] : 'border-gray-700/50'} hover:border-purple-500/50 transition-all shadow-lg hover:shadow-xl`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="text-4xl font-black flex-shrink-0 w-12 text-center">
+                          {isTop3 ? medals[index] : `${index + 1}`}
+                        </div>
+                        <div className="relative flex-shrink-0">
+                          <img
+                            src={player.photo}
+                            alt={player.name}
+                            className={`w-16 h-16 rounded-full object-cover ring-4 ${isTop3 ? 'ring-yellow-500/70' : 'ring-purple-500/50'} shadow-lg`}
+                          />
+                          <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-full border-2 border-gray-900 shadow-lg shadow-green-500/50"></div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-gray-100 text-xl truncate">{player.name}</h3>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className={`font-black text-2xl ${isTop3 ? 'text-yellow-400' : 'text-purple-400'}`}>
+                              🏆 {player.points} pts
+                            </span>
+                            {player.lastBonus > 0 && (
+                              <span className="text-green-400 font-bold text-sm">+{player.lastBonus}</span>
+                            )}
+                          </div>
+                          <div className="flex gap-3 text-sm mt-1">
+                            <span className="text-green-400">✅ {player.successful} réussies</span>
+                            <span className="text-red-400">❌ {player.trapped} piégé(e)</span>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-3xl font-black text-gray-800 mb-2">{player.name}</h3>
-                    <div className="flex gap-4 flex-wrap">
-                      <span className="bg-white px-4 py-2 rounded-full text-base font-bold shadow-md">
-                        🏆 <span className="text-indigo-600">{player.points}</span> pts
-                      </span>
-                      <span className="bg-white px-4 py-2 rounded-full text-base font-bold shadow-md">
-                        ✅ <span className="text-green-600">{player.successful}</span> réussies
-                      </span>
-                      <span className="bg-white px-4 py-2 rounded-full text-base font-bold shadow-md">
-                        ❌ <span className="text-red-600">{player.trapped}</span> piégé(e)
-                      </span>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-7xl font-black ${
-                      index === 0 ? 'text-yellow-500' :
-                      index === 1 ? 'text-gray-400' :
-                      index === 2 ? 'text-orange-500' :
-                      'text-indigo-600'
-                    }`}>
-                      {player.points}
-                    </div>
-                    <div className="text-sm text-gray-500 font-semibold">points</div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
             </div>
 
-            {players.length === 0 && (
-              <div className="text-center py-20">
-                <Users className="w-32 h-32 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-2xl font-bold">Aucun joueur inscrit</p>
+            {/* COLONNE DROITE - FEED D'ACTIVITÉ */}
+            <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-cyan-500/30 flex flex-col min-h-0">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-3 text-cyan-300 flex-shrink-0">
+                <div className="relative">
+                  <div className="w-7 h-7 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/50">
+                    <span className="text-white text-lg">💬</span>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                </div>
+                Feed d'Activité
+              </h2>
+              <div className="space-y-2 overflow-y-auto flex-1">
+                {activityFeed.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="text-6xl mb-4">🎮</div>
+                    <p className="text-lg">Aucune activité pour le moment...</p>
+                    <p className="text-sm mt-2">Les actions apparaîtront ici en temps réel !</p>
+                  </div>
+                ) : (
+                  activityFeed.map((activity, index) => {
+                    const isRecent = index === 0;
+                    return (
+                      <div
+                        key={activity.id || index}
+                        className={`bg-gradient-to-r from-cyan-900/30 to-blue-900/30 backdrop-blur-sm rounded-xl p-4 border ${isRecent ? 'border-cyan-400/70 shadow-lg shadow-cyan-500/30 animate-pulse' : 'border-cyan-700/50'} transition-all`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="text-2xl flex-shrink-0">{activity.icon || '🎯'}</div>
+                          <div className="flex-1">
+                            <p className="text-gray-200 leading-relaxed">{activity.message}</p>
+                            <p className="text-xs text-cyan-400 mt-1">
+                              {new Date(activity.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
           </div>
         </div>
       </div>
