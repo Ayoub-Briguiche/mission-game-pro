@@ -85,7 +85,7 @@ export default function Home() {
   const [waitingForValidation, setWaitingForValidation] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activityFeed, setActivityFeed] = useState([]);
-  const [useAI, setUseAI] = useState(true); // Activer l'IA par défaut
+  const [useAI, setUseAI] = useState(true);
   const [isGeneratingMissions, setIsGeneratingMissions] = useState(false);
 
   const missionTemplates = [
@@ -108,32 +108,27 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Réinitialiser la visibilité de la mission quand une nouvelle mission est assignée
     if (myRole === 'player' && missions.length > 0) {
       const myMission = missions.find(m => m.playerId === currentPlayer?.id && !m.completed);
       if (myMission) {
         setMissionVisible(false);
-        // Réinitialiser l'attente si nouvelle mission
         setWaitingForValidation(false);
       }
     }
   }, [missions.length, myRole]);
 
   useEffect(() => {
-    // Réinitialiser l'attente quand il n'y a plus de confirmation en attente pour ce joueur
     if (myRole === 'player' && currentPlayer && waitingForValidation) {
       const myPendingConfirmation = pendingConfirmations.find(
         c => c.hunterId === currentPlayer.id
       );
       
-      // Si plus de confirmation en attente, réinitialiser
       if (!myPendingConfirmation) {
         setWaitingForValidation(false);
       }
     }
   }, [pendingConfirmations, myRole, currentPlayer, waitingForValidation]);
 
-  // Écouter le feed d'activité
   useEffect(() => {
     if (!gameCode) return;
     const feedRef = ref(database, `games/${gameCode}/activityFeed`);
@@ -166,7 +161,6 @@ export default function Home() {
   const listenToGame = (code) => {
     const gameRef = ref(database, `games/${code}`);
     
-    // Écoute en TEMPS RÉEL (pas d'intervalle, Firebase push automatique)
     const unsubscribe = onValue(gameRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -185,7 +179,6 @@ export default function Home() {
       console.error('Erreur Firebase:', error);
     });
 
-    // Nettoyage à la déconnexion
     return () => unsubscribe();
   };
 
@@ -215,7 +208,6 @@ export default function Home() {
     try {
       const gameRef = ref(database, `games/${code}`);
       
-      // Vérifier que le jeu existe
       const gameSnapshot = await get(gameRef);
       if (!gameSnapshot.exists()) {
         alert('❌ Ce code de partie n\'existe pas !');
@@ -224,7 +216,6 @@ export default function Home() {
 
       const gameData = gameSnapshot.val();
       
-      // VÉRIFIER LES NOMS EN DOUBLON (blocage strict)
       if (gameData.players) {
         const existingNames = Object.values(gameData.players).map(p => p.name.toLowerCase().trim());
         if (existingNames.includes(name.toLowerCase().trim())) {
@@ -233,7 +224,6 @@ export default function Home() {
         }
       }
 
-      // Créer le nouveau joueur
       const newPlayer = {
         id: Date.now().toString(),
         name: name.trim(),
@@ -262,7 +252,6 @@ export default function Home() {
 
   const leaveGame = async () => {
     if (confirm('Voulez-vous vraiment quitter cette partie ?')) {
-      // Si c'est un joueur, le supprimer de Firebase
       if (myRole === 'player' && currentPlayer && gameCode) {
         try {
           await remove(ref(database, `games/${gameCode}/players/${currentPlayer.id}`));
@@ -286,22 +275,18 @@ export default function Home() {
     }
   };
 
-  // Gestion du plein écran
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      // Entrer en plein écran
       document.documentElement.requestFullscreen().catch(err => {
         console.error('Erreur plein écran:', err);
       });
     } else {
-      // Sortir du plein écran
       if (document.exitFullscreen) {
         document.exitFullscreen();
       }
     }
   };
 
-  // Écouter les changements de plein écran
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -313,16 +298,9 @@ export default function Home() {
     };
   }, []);
 
-  // Calculer les points bonus selon le temps (1-1000 points)
   const calculateTimeBonus = (missionStartTime) => {
-    const timeElapsed = Date.now() - missionStartTime; // en millisecondes
-    const minutes = timeElapsed / 60000; // convertir en minutes
-    
-    // Formule: 1000 points si < 1 min, diminue progressivement
-    // 1000 points à 0 min
-    // 500 points à 5 min
-    // 100 points à 15 min
-    // 1 point à 30+ min
+    const timeElapsed = Date.now() - missionStartTime;
+    const minutes = timeElapsed / 60000;
     
     if (minutes < 1) return 1000;
     if (minutes < 2) return 900;
@@ -332,25 +310,18 @@ export default function Home() {
     if (minutes < 15) return 150;
     if (minutes < 20) return 75;
     if (minutes < 30) return 25;
-    return 1; // minimum 1 point bonus
+    return 1;
   };
 
-  // Calculer la pénalité pour être piégé (selon le temps écoulé)
   const calculateTrapPenalty = (missionStartTime) => {
     const timeElapsed = Date.now() - missionStartTime;
     const minutes = timeElapsed / 60000;
-    
-    // Plus tu te fais piéger vite, plus la pénalité est forte
-    // Piégé en < 1 min : -20 points (tu étais trop naïf)
-    // Piégé en < 5 min : -15 points
-    // Piégé en < 10 min : -10 points
-    // Piégé après 10+ min : -5 points (tu as bien résisté)
     
     if (minutes < 1) return 20;
     if (minutes < 3) return 15;
     if (minutes < 5) return 12;
     if (minutes < 10) return 8;
-    return 5; // pénalité minimum
+    return 5;
   };
 
   const startGame = async () => {
@@ -364,13 +335,11 @@ export default function Home() {
     const newMissions = {};
     
     if (useAI) {
-      // Utiliser l'IA pour générer des missions uniques
       for (let index = 0; index < shuffledPlayers.length; index++) {
         const player = shuffledPlayers[index];
         const targetIndex = (index + 1) % shuffledPlayers.length;
         const target = shuffledPlayers[targetIndex];
         
-        // Générer une mission unique avec l'IA
         const missionText = await generateMissionWithAI(target.name, []);
         
         const missionId = Date.now().toString() + index;
@@ -387,11 +356,9 @@ export default function Home() {
           generatedByAI: true
         };
         
-        // Petite pause pour éviter de surcharger l'API
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     } else {
-      // Utiliser les missions prédéfinies
       shuffledPlayers.forEach((player, index) => {
         const targetIndex = (index + 1) % shuffledPlayers.length;
         const target = shuffledPlayers[targetIndex];
@@ -421,7 +388,6 @@ export default function Home() {
     
     setIsGeneratingMissions(false);
     
-    // Ajouter un message de début de jeu au feed
     const startActivityId = Date.now().toString();
     const startMessage = {
       id: startActivityId,
@@ -449,7 +415,6 @@ export default function Home() {
 
     await set(ref(database, `games/${gameCode}/confirmations/${confirmationId}`), confirmation);
     
-    // Activer le message d'attente
     setWaitingForValidation(true);
     setMissionVisible(false);
   };
@@ -463,18 +428,16 @@ export default function Home() {
       const target = players.find(p => p.id === confirmation.targetId);
       const mission = missions.find(m => m.id === confirmation.missionId);
       
-      // Calculer les points bonus pour le chasseur
       const timeBonus = mission ? calculateTimeBonus(mission.startedAt) : 0;
-      const totalHunterPoints = 10 + timeBonus; // 10 points de base + bonus temps
+      const totalHunterPoints = 10 + timeBonus;
       
-      // Calculer la pénalité pour la cible
       const trapPenalty = mission ? calculateTrapPenalty(mission.startedAt) : 5;
       
       if (hunter) {
         await update(ref(database, `games/${gameCode}/players/${hunter.id}`), {
           points: hunter.points + totalHunterPoints,
           successful: hunter.successful + 1,
-          lastBonus: timeBonus // Pour affichage
+          lastBonus: timeBonus
         });
       }
       
@@ -482,11 +445,10 @@ export default function Home() {
         await update(ref(database, `games/${gameCode}/players/${target.id}`), {
           points: Math.max(0, target.points - trapPenalty),
           trapped: target.trapped + 1,
-          lastPenalty: trapPenalty // Pour affichage
+          lastPenalty: trapPenalty
         });
       }
 
-      // Ajouter un message au feed d'activité
       if (hunter && target && mission) {
         const activityId = Date.now().toString();
         const activityMessage = {
@@ -511,15 +473,12 @@ export default function Home() {
         let newMissionText;
         
         if (useAI) {
-          // Récupérer toutes les missions déjà utilisées pour ce joueur
           const hunterMissions = missions
             .filter(m => m.playerId === confirmation.hunterId)
             .map(m => m.mission);
           
-          // Générer une nouvelle mission unique avec l'IA
           newMissionText = await generateMissionWithAI(newTarget.name, hunterMissions);
         } else {
-          // Utiliser les missions prédéfinies
           const newMissionTemplate = missionTemplates[Math.floor(Math.random() * missionTemplates.length)];
           newMissionText = newMissionTemplate.replace('{target}', newTarget.name);
         }
@@ -531,7 +490,7 @@ export default function Home() {
           targetPhoto: newTarget.photo,
           mission: newMissionText,
           completed: false,
-          startedAt: Date.now(), // Nouveau timestamp pour la nouvelle mission
+          startedAt: Date.now(),
           generatedByAI: useAI
         });
       }
@@ -565,7 +524,6 @@ export default function Home() {
     );
   }
 
-  // PAGE D'ACCUEIL
   const JoinView = () => {
     const [name, setName] = useState('');
     const [photo, setPhoto] = useState('');
@@ -582,7 +540,6 @@ export default function Home() {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden">
-        {/* Grille cyberpunk */}
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: `
             linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
@@ -591,17 +548,14 @@ export default function Home() {
           backgroundSize: '50px 50px'
         }}></div>
 
-        {/* Éléments lumineux */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-pink-400/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
         <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-cyan-400/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
 
         <div className="max-w-lg mx-auto pt-8 relative z-10">
           <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border-2 border-purple-500/50 relative overflow-hidden">
-            {/* Effet glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-pink-600/5 to-cyan-600/5"></div>
             
-            {/* Logo et titre */}
             <div className="text-center mb-8 relative z-10">
               <div className="inline-block p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-4 shadow-lg shadow-purple-500/50 border border-purple-400/50">
                 <Target className="w-16 h-16 text-white" />
@@ -613,7 +567,6 @@ export default function Home() {
             </div>
 
             <div className="space-y-6 relative z-10">
-              {/* Bouton créer partie */}
               <button
                 onClick={createGame}
                 className="group w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-5 rounded-2xl font-bold text-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/70 hover:scale-105 flex items-center justify-center gap-3 border border-purple-400/50"
@@ -633,7 +586,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Section rejoindre */}
               <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-2xl p-6 space-y-4 border-2 border-purple-500/50 backdrop-blur-sm shadow-lg shadow-purple-500/20">
                 <h3 className="font-bold text-purple-300 text-center text-xl flex items-center justify-center gap-2">
                   <Users className="w-5 h-5" />
@@ -696,7 +648,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="mt-8 text-center relative z-10">
               <p className="text-xs text-purple-500">
                 🔒 Sécurisé • ⚡ Temps réel • 🎯 100% Gratuit
@@ -708,7 +659,6 @@ export default function Home() {
     );
   };
 
-  // QR CODE MODAL
   const QRCodeModal = () => {
     if (!showQRCode) return null;
 
@@ -745,7 +695,6 @@ export default function Home() {
     );
   };
 
-  // DASHBOARD ADMIN
   const AdminView = () => {
     if (showLeaderboard) {
       return <LeaderboardView />;
@@ -755,7 +704,6 @@ export default function Home() {
 
     return (
       <div className="min-h-screen h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden flex flex-col">
-        {/* Grille cyberpunk en fond */}
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: `
             linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
@@ -764,14 +712,11 @@ export default function Home() {
           backgroundSize: '50px 50px'
         }}></div>
         
-        {/* Éléments lumineux flottants */}
         <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
 
         <div className="w-full h-full relative z-10 flex flex-col">
-          {/* Header avec effet néon */}
           <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-4 border border-purple-500/30 relative overflow-hidden flex-shrink-0">
-            {/* Effet glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-cyan-600/10 animate-pulse"></div>
             
             <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
@@ -840,7 +785,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Toggle IA pour générer des missions */}
           {gameState === 'lobby' && (
             <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-4 border border-cyan-500/50 shadow-cyan-500/30 flex-shrink-0">
               <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -874,7 +818,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Message d'attente si < 3 joueurs */}
           {gameState === 'lobby' && players.length < 3 && (
             <div className="bg-gradient-to-r from-orange-900/80 to-red-900/80 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-4 border border-orange-500/50 shadow-orange-500/30 animate-pulse flex-shrink-0">
               <div className="flex items-center gap-4">
@@ -893,9 +836,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* Stats avec effets néon colorés */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-shrink-0">
-            {/* Carte 1 - Rose néon */}
             <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 border-2 border-pink-500/50 hover:border-pink-400 transition-all hover:shadow-2xl hover:shadow-pink-500/50 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-pink-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative z-10 flex items-center gap-3">
@@ -912,7 +853,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Carte 2 - Cyan néon */}
             <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 border-2 border-cyan-500/50 hover:border-cyan-400 transition-all hover:shadow-2xl hover:shadow-cyan-500/50 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative z-10 flex items-center gap-3">
@@ -926,7 +866,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Carte 3 - Orange néon */}
             <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 border-2 border-orange-500/50 hover:border-orange-400 transition-all hover:shadow-2xl hover:shadow-orange-500/50 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative z-10 flex items-center gap-3">
@@ -941,7 +880,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Liste des joueurs avec design gaming */}
           <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-purple-500/30 flex-1 flex flex-col min-h-0">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-3 text-purple-300 flex-shrink-0">
               <Users className="w-6 h-6 text-purple-400" />
@@ -950,7 +888,6 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 overflow-y-auto flex-1">
               {players.map(player => (
                 <div key={player.id} className="group relative bg-gray-900/60 border-2 border-gray-700/50 hover:border-purple-500/50 rounded-2xl p-3 flex flex-col items-center gap-2 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 h-fit">
-                  {/* Bouton supprimer */}
                   <button
                     onClick={() => removePlayer(player.id)}
                     className="absolute top-2 right-2 bg-red-500/80 text-white p-1 rounded-full hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-lg border border-red-400/50"
@@ -984,7 +921,6 @@ export default function Home() {
     );
   };
 
-  // VUE JOUEUR
   const PlayerView = () => {
     if (showLeaderboard) {
       return <LeaderboardView />;
@@ -1013,7 +949,6 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-4">
         <div className="max-w-2xl mx-auto pt-4">
-          {/* Profil joueur */}
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -1052,7 +987,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Message d'attente si < 3 joueurs */}
           {gameState === 'lobby' && (
             <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 mb-4 text-center">
               <div className="inline-block p-4 bg-gradient-to-r from-orange-400 to-red-500 rounded-2xl mb-4 animate-pulse">
@@ -1081,7 +1015,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Mission actuelle */}
           {gameState === 'playing' && myMission && (
             <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
               <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
@@ -1092,7 +1025,6 @@ export default function Home() {
               </h3>
               
               {waitingForValidation ? (
-                // Message d'attente de validation
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8 border-3 border-yellow-400 text-center animate-pulse">
                   <div className="mb-6">
                     <div className="inline-block p-6 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full mb-4">
@@ -1112,7 +1044,6 @@ export default function Home() {
                   </div>
                 </div>
               ) : !missionVisible ? (
-                // Mission cachée - Bouton pour révéler
                 <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-12 border-3 border-indigo-300 text-center">
                   <div className="mb-6">
                     <div className="inline-block p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mb-4">
@@ -1129,7 +1060,6 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                // Mission visible
                 <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-3 border-indigo-300">
                   <div className="flex items-center gap-4 mb-4">
                     <img src={myMission.targetPhoto} alt={myMission.targetName} className="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-xl" />
@@ -1161,7 +1091,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Confirmations */}
           {myConfirmations.length > 0 && (
             <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-4">
               <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -1209,13 +1138,11 @@ export default function Home() {
     );
   };
 
-  // CLASSEMENT
   const LeaderboardView = () => {
     const sortedPlayers = [...players].sort((a, b) => b.points - a.points);
 
     return (
       <div className="min-h-screen h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 p-4 relative overflow-hidden flex flex-col">
-        {/* Grille cyberpunk en fond */}
         <div className="absolute inset-0 opacity-20" style={{
           backgroundImage: `
             linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
@@ -1224,12 +1151,10 @@ export default function Home() {
           backgroundSize: '50px 50px'
         }}></div>
 
-        {/* Éléments lumineux */}
         <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
 
         <div className="w-full h-full relative z-10 flex flex-col">
-          {/* Header */}
           <div className="bg-black/80 backdrop-blur-xl rounded-3xl shadow-2xl p-6 mb-4 border border-purple-500/30 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1256,9 +1181,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Layout 2 colonnes : Classement + Feed */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
-            {/* COLONNE GAUCHE - CLASSEMENT */}
             <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-purple-500/30 flex flex-col min-h-0">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-3 text-purple-300 flex-shrink-0">
                 <Trophy className="w-7 h-7 text-yellow-400" />
@@ -1318,7 +1241,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* COLONNE DROITE - FEED D'ACTIVITÉ */}
             <div className="bg-black/60 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-cyan-500/30 flex flex-col min-h-0">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-3 text-cyan-300 flex-shrink-0">
                 <div className="relative">
@@ -1364,13 +1286,7 @@ export default function Home() {
       </div>
     );
   };
-          </div>
-        </div>
-      </div>
-    );
-  };
 
-  // ROUTER
   return (
     <>
       <style jsx global>{`
