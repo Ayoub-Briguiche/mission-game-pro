@@ -61,6 +61,7 @@ ${usedMissions.length > 0 ? usedMissions.map((m, i) => `${i + 1}. ${m}`).join('\
 ✓ Réalisable en moins de 3 minutes
 ✓ Ne copie AUCUNE des missions déjà utilisées
 ✓ Sois TRÈS original et surprenant
+✓ les quoistions doivent etre en arabe ça et très important
 
 Génère UNE mission unique MAINTENANT (réponds UNIQUEMENT avec le texte de la mission, sans préambule) :`
           }
