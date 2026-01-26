@@ -4,6 +4,72 @@ import { ref, onValue, set, update, remove, get } from 'firebase/database';
 import { QRCodeSVG } from 'qrcode.react';
 import { Camera, Users, Target, Trophy, CheckCircle, XCircle, Play, QrCode, ArrowLeft, RefreshCw, LogOut, Clock, Maximize, Minimize } from 'lucide-react';
 
+// Fonction pour générer une mission unique avec l'IA
+const generateMissionWithAI = async (targetName, usedMissions = []) => {
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [
+          {
+            role: "user",
+            content: `Tu es un générateur de missions amusantes pour un jeu de bureau entre collègues.
+
+CONTEXTE :
+- La cible s'appelle : ${targetName}
+- Le but est de "piéger" cette personne avec une mission subtile et amusante
+- Les missions doivent être réalisables dans un environnement de bureau/travail
+- Elles doivent être légères, fun et appropriées pour le travail
+
+MISSIONS DÉJÀ UTILISÉES (À ÉVITER) :
+${usedMissions.length > 0 ? usedMissions.join('\n') : 'Aucune mission utilisée encore'}
+
+INSTRUCTIONS :
+Génère UNE SEULE mission créative et unique qui :
+1. Est différente des missions déjà utilisées
+2. Est réalisable en quelques minutes
+3. N'est pas embarrassante ou inappropriée
+4. Utilise le nom "${targetName}" dans la mission
+5. Est formulée de manière claire et concise (maximum 15 mots)
+
+Réponds UNIQUEMENT avec le texte de la mission, sans préambule ni explication.`
+          }
+        ],
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.content && data.content[0] && data.content[0].text) {
+      return data.content[0].text.trim();
+    } else {
+      // Fallback sur les missions prédéfinies
+      const templates = [
+        `Demander à ${targetName} de vous recommander 3 films`,
+        `Faire rire ${targetName} avec une blague`,
+        `Obtenir de ${targetName} son plat préféré`,
+      ];
+      return templates[Math.floor(Math.random() * templates.length)];
+    }
+  } catch (error) {
+    console.error('Erreur lors de la génération de mission:', error);
+    // Fallback sur les missions prédéfinies
+    const templates = [
+      `Demander à ${targetName} de vous recommander 3 films`,
+      `Faire rire ${targetName} avec une blague`,
+      `Obtenir de ${targetName} son plat préféré`,
+      `Demander à ${targetName} de partager un souvenir d'enfance`,
+      `Convaincre ${targetName} de faire un selfie avec vous`,
+    ];
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+};
+
 export default function Home() {
   const [gameState, setGameState] = useState('setup');
   const [myRole, setMyRole] = useState(null);
@@ -19,6 +85,8 @@ export default function Home() {
   const [waitingForValidation, setWaitingForValidation] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activityFeed, setActivityFeed] = useState([]);
+  const [useAI, setUseAI] = useState(true); // Activer l'IA par défaut
+  const [isGeneratingMissions, setIsGeneratingMissions] = useState(false);
 
   const missionTemplates = [
     "Demander à {target} de vous recommander 3 films",
@@ -291,33 +359,67 @@ export default function Home() {
       return;
     }
 
+    setIsGeneratingMissions(true);
     const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
     const newMissions = {};
     
-    shuffledPlayers.forEach((player, index) => {
-      const targetIndex = (index + 1) % shuffledPlayers.length;
-      const target = shuffledPlayers[targetIndex];
-      const missionTemplate = missionTemplates[Math.floor(Math.random() * missionTemplates.length)];
-      
-      const missionId = Date.now().toString() + index;
-      newMissions[missionId] = {
-        id: missionId,
-        playerId: player.id,
-        targetId: target.id,
-        mission: missionTemplate.replace('{target}', target.name),
-        targetName: target.name,
-        targetPhoto: target.photo,
-        completed: false,
-        validated: false,
-        startedAt: Date.now()
-      };
-    });
+    if (useAI) {
+      // Utiliser l'IA pour générer des missions uniques
+      for (let index = 0; index < shuffledPlayers.length; index++) {
+        const player = shuffledPlayers[index];
+        const targetIndex = (index + 1) % shuffledPlayers.length;
+        const target = shuffledPlayers[targetIndex];
+        
+        // Générer une mission unique avec l'IA
+        const missionText = await generateMissionWithAI(target.name, []);
+        
+        const missionId = Date.now().toString() + index;
+        newMissions[missionId] = {
+          id: missionId,
+          playerId: player.id,
+          targetId: target.id,
+          mission: missionText,
+          targetName: target.name,
+          targetPhoto: target.photo,
+          completed: false,
+          validated: false,
+          startedAt: Date.now(),
+          generatedByAI: true
+        };
+        
+        // Petite pause pour éviter de surcharger l'API
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    } else {
+      // Utiliser les missions prédéfinies
+      shuffledPlayers.forEach((player, index) => {
+        const targetIndex = (index + 1) % shuffledPlayers.length;
+        const target = shuffledPlayers[targetIndex];
+        const missionTemplate = missionTemplates[Math.floor(Math.random() * missionTemplates.length)];
+        
+        const missionId = Date.now().toString() + index;
+        newMissions[missionId] = {
+          id: missionId,
+          playerId: player.id,
+          targetId: target.id,
+          mission: missionTemplate.replace('{target}', target.name),
+          targetName: target.name,
+          targetPhoto: target.photo,
+          completed: false,
+          validated: false,
+          startedAt: Date.now(),
+          generatedByAI: false
+        };
+      });
+    }
     
     await update(ref(database, `games/${gameCode}`), {
       gameState: 'playing',
       missions: newMissions,
       startedAt: Date.now()
     });
+    
+    setIsGeneratingMissions(false);
     
     // Ajouter un message de début de jeu au feed
     const startActivityId = Date.now().toString();
@@ -406,15 +508,31 @@ export default function Home() {
       const newTarget = availableTargets[Math.floor(Math.random() * availableTargets.length)];
       
       if (newTarget) {
-        const newMissionTemplate = missionTemplates[Math.floor(Math.random() * missionTemplates.length)];
+        let newMissionText;
+        
+        if (useAI) {
+          // Récupérer toutes les missions déjà utilisées pour ce joueur
+          const hunterMissions = missions
+            .filter(m => m.playerId === confirmation.hunterId)
+            .map(m => m.mission);
+          
+          // Générer une nouvelle mission unique avec l'IA
+          newMissionText = await generateMissionWithAI(newTarget.name, hunterMissions);
+        } else {
+          // Utiliser les missions prédéfinies
+          const newMissionTemplate = missionTemplates[Math.floor(Math.random() * missionTemplates.length)];
+          newMissionText = newMissionTemplate.replace('{target}', newTarget.name);
+        }
+        
         await update(ref(database, `games/${gameCode}/missions/${confirmation.missionId}`), {
           validated: true,
           targetId: newTarget.id,
           targetName: newTarget.name,
           targetPhoto: newTarget.photo,
-          mission: newMissionTemplate.replace('{target}', newTarget.name),
+          mission: newMissionText,
           completed: false,
-          startedAt: Date.now() // Nouveau timestamp pour la nouvelle mission
+          startedAt: Date.now(), // Nouveau timestamp pour la nouvelle mission
+          generatedByAI: useAI
         });
       }
     }
@@ -693,9 +811,22 @@ export default function Home() {
                   Scores
                 </button>
                 {gameState === 'lobby' && players.length >= 3 && (
-                  <button onClick={startGame} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 animate-pulse flex items-center gap-2 shadow-lg shadow-green-500/50 text-base border border-green-400/50">
-                    <Play className="w-5 h-5" />
-                    🚀 DÉMARRER
+                  <button 
+                    onClick={startGame} 
+                    disabled={isGeneratingMissions}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 animate-pulse flex items-center gap-2 shadow-lg shadow-green-500/50 text-base border border-green-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:animate-none"
+                  >
+                    {isGeneratingMissions ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        {useAI ? 'Génération IA...' : 'Démarrage...'}
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5" />
+                        🚀 DÉMARRER
+                      </>
+                    )}
                   </button>
                 )}
                 <button onClick={leaveGame} className="bg-gray-800/80 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-700 transition flex items-center gap-2 border border-gray-600/50 text-sm">
@@ -708,6 +839,40 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Toggle IA pour générer des missions */}
+          {gameState === 'lobby' && (
+            <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-4 border border-cyan-500/50 shadow-cyan-500/30 flex-shrink-0">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-cyan-500/20 rounded-xl border border-cyan-400/50 shadow-lg shadow-cyan-500/50">
+                    <span className="text-3xl">🤖</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-cyan-200 flex items-center gap-2">
+                      Génération IA des missions
+                      {useAI && <span className="text-xs bg-green-500/80 text-white px-2 py-1 rounded-full">Activé</span>}
+                    </h3>
+                    <p className="text-sm text-cyan-300">
+                      {useAI 
+                        ? "✨ L'IA créera des missions uniques et variées pour chaque joueur" 
+                        : "📋 Utilisation des missions prédéfinies (peut avoir des répétitions)"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUseAI(!useAI)}
+                  className={`px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 border-2 ${
+                    useAI 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-green-400/50 shadow-green-500/50' 
+                      : 'bg-gray-700/80 hover:bg-gray-600 text-gray-300 border-gray-600/50 shadow-gray-500/50'
+                  }`}
+                >
+                  {useAI ? '✓ IA Activée' : '○ IA Désactivée'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Message d'attente si < 3 joueurs */}
           {gameState === 'lobby' && players.length < 3 && (
