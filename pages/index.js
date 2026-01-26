@@ -15,29 +15,54 @@ const generateMissionWithAI = async (targetName, usedMissions = []) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1000,
+        temperature: 1.0,
         messages: [
           {
             role: "user",
-            content: `Tu es un générateur de missions amusantes pour un jeu de bureau entre collègues.
+            content: `Tu es un créateur de défis originaux et créatifs pour un jeu entre collègues au bureau.
 
-CONTEXTE :
-- La cible s'appelle : ${targetName}
-- Le but est de "piéger" cette personne avec une mission subtile et amusante
-- Les missions doivent être réalisables dans un environnement de bureau/travail
-- Elles doivent être légères, fun et appropriées pour le travail
+🎯 CIBLE : ${targetName}
 
-MISSIONS DÉJÀ UTILISÉES (À ÉVITER) :
-${usedMissions.length > 0 ? usedMissions.join('\n') : 'Aucune mission utilisée encore'}
+❌ MISSIONS DÉJÀ UTILISÉES (NE JAMAIS RÉPÉTER CES MISSIONS) :
+${usedMissions.length > 0 ? usedMissions.map((m, i) => `${i + 1}. ${m}`).join('\n') : 'Aucune mission encore utilisée'}
 
-INSTRUCTIONS :
-Génère UNE SEULE mission créative et unique qui :
-1. Est différente des missions déjà utilisées
-2. Est réalisable en quelques minutes
-3. N'est pas embarrassante ou inappropriée
-4. Utilise le nom "${targetName}" dans la mission
-5. Est formulée de manière claire et concise (maximum 15 mots)
+🎲 CONSIGNES STRICTES :
+- Invente une mission TOTALEMENT NOUVELLE et UNIQUE
+- Ne JAMAIS répéter ou paraphraser les missions déjà utilisées
+- Sois TRÈS CRÉATIF : varie les types d'actions, les contextes, les thèmes
+- Chaque mission doit être complètement différente des précédentes
 
-Réponds UNIQUEMENT avec le texte de la mission, sans préambule ni explication.`
+📋 CATÉGORIES DE MISSIONS (choisis-en UNE au hasard) :
+1. ACTIONS PHYSIQUES : danser, mimer, faire un geste, dessiner, écrire, pointer, sauter
+2. RÉVÉLATIONS : secret, souvenir, rêve, peur, talent caché, anecdote drôle
+3. PRÉFÉRENCES : film, musique, nourriture, lieu, hobby, célébrité préférée
+4. CRÉATIVITÉ : inventer une histoire, créer un nom, imaginer quelque chose
+5. SONS : chanter, fredonner, imiter un bruit, faire un accent, siffler
+6. OBJETS : montrer quelque chose, partager, échanger, offrir
+7. INTERACTIONS SOCIALES : complimenter, faire rire, demander conseil, remercier
+8. ÉMOTIONS : faire sourire, surprendre, impressionner, amuser
+9. DÉFIS : compter quelque chose, trouver quelque chose, résoudre quelque chose
+10. ÉCHANGES : obtenir un conseil, une recommandation, une astuce, un secret
+
+🎨 EXEMPLES DE VARIÉTÉ (NE PAS COPIER, juste pour inspiration) :
+- Faire dessiner par ${targetName} son animal totem
+- Obtenir que ${targetName} partage son emoji le plus utilisé
+- Convaincre ${targetName} de faire 3 jumping jacks
+- Demander à ${targetName} son pire date de sa vie
+- Faire imiter par ${targetName} le bruit d'un dinosaure
+- Obtenir de ${targetName} sa technique anti-stress
+- Convaincre ${targetName} de vous apprendre un mot dans une autre langue
+- Faire révéler à ${targetName} son super-pouvoir rêvé
+
+⚡ RÈGLES FINALES :
+✓ Utilise le nom "${targetName}" dans la mission
+✓ Maximum 18 mots
+✓ Approprié et fun pour le bureau
+✓ Réalisable en moins de 3 minutes
+✓ Ne copie AUCUNE des missions déjà utilisées
+✓ Sois TRÈS original et surprenant
+
+Génère UNE mission unique MAINTENANT (réponds UNIQUEMENT avec le texte de la mission, sans préambule) :`
           }
         ],
       })
@@ -48,25 +73,19 @@ Réponds UNIQUEMENT avec le texte de la mission, sans préambule ni explication.
     if (data.content && data.content[0] && data.content[0].text) {
       return data.content[0].text.trim();
     } else {
-      // Fallback sur les missions prédéfinies
-      const templates = [
-        `Demander à ${targetName} de vous recommander 3 films`,
-        `Faire rire ${targetName} avec une blague`,
-        `Obtenir de ${targetName} son plat préféré`,
-      ];
-      return templates[Math.floor(Math.random() * templates.length)];
+      throw new Error('Réponse IA invalide');
     }
   } catch (error) {
     console.error('Erreur lors de la génération de mission:', error);
-    // Fallback sur les missions prédéfinies
-    const templates = [
-      `Demander à ${targetName} de vous recommander 3 films`,
-      `Faire rire ${targetName} avec une blague`,
-      `Obtenir de ${targetName} son plat préféré`,
-      `Demander à ${targetName} de partager un souvenir d'enfance`,
-      `Convaincre ${targetName} de faire un selfie avec vous`,
+    // Fallback uniquement en cas d'erreur critique
+    const fallbackMissions = [
+      `Faire révéler à ${targetName} son plus grand rêve secret`,
+      `Obtenir que ${targetName} dessine son animal préféré`,
+      `Convaincre ${targetName} de faire 5 jumping jacks`,
+      `Demander à ${targetName} d'imiter un accent étranger`,
+      `Faire partager à ${targetName} son pire moment embarrassant`,
     ];
-    return templates[Math.floor(Math.random() * templates.length)];
+    return fallbackMissions[Math.floor(Math.random() * fallbackMissions.length)];
   }
 };
 
@@ -356,7 +375,7 @@ export default function Home() {
           generatedByAI: true
         };
         
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     } else {
       shuffledPlayers.forEach((player, index) => {
@@ -764,7 +783,7 @@ export default function Home() {
                     {isGeneratingMissions ? (
                       <>
                         <RefreshCw className="w-5 h-5 animate-spin" />
-                        {useAI ? 'Génération IA...' : 'Démarrage...'}
+                        🤖 Génération IA...
                       </>
                     ) : (
                       <>
@@ -787,33 +806,19 @@ export default function Home() {
 
           {gameState === 'lobby' && (
             <div className="bg-gradient-to-r from-cyan-900/60 to-blue-900/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 mb-4 border border-cyan-500/50 shadow-cyan-500/30 flex-shrink-0">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-cyan-500/20 rounded-xl border border-cyan-400/50 shadow-lg shadow-cyan-500/50">
-                    <span className="text-3xl">🤖</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-cyan-200 flex items-center gap-2">
-                      Génération IA des missions
-                      {useAI && <span className="text-xs bg-green-500/80 text-white px-2 py-1 rounded-full">Activé</span>}
-                    </h3>
-                    <p className="text-sm text-cyan-300">
-                      {useAI 
-                        ? "✨ L'IA créera des missions uniques et variées pour chaque joueur" 
-                        : "📋 Utilisation des missions prédéfinies (peut avoir des répétitions)"}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-cyan-500/20 rounded-xl border border-cyan-400/50 shadow-lg shadow-cyan-500/50">
+                  <span className="text-3xl">🤖</span>
                 </div>
-                <button
-                  onClick={() => setUseAI(!useAI)}
-                  className={`px-6 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2 border-2 ${
-                    useAI 
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-green-400/50 shadow-green-500/50' 
-                      : 'bg-gray-700/80 hover:bg-gray-600 text-gray-300 border-gray-600/50 shadow-gray-500/50'
-                  }`}
-                >
-                  {useAI ? '✓ IA Activée' : '○ IA Désactivée'}
-                </button>
+                <div>
+                  <h3 className="text-xl font-bold text-cyan-200 flex items-center gap-2">
+                    IA 100% ACTIVÉE - Toutes les missions générées par l'IA
+                    <span className="text-xs bg-green-500/80 text-white px-2 py-1 rounded-full animate-pulse">ACTIF</span>
+                  </h3>
+                  <p className="text-sm text-cyan-300">
+                    ✨ L'IA créera des missions uniques, créatives et variées pour chaque joueur
+                  </p>
+                </div>
               </div>
             </div>
           )}
